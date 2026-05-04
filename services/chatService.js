@@ -25,7 +25,7 @@ function applyVitals(sessionId, partial) {
   sm.setScenario(sessionId, row.scenario_type, JSON.stringify(state));
 }
 
-function makeChatService({ openai, model = DEFAULT_MODEL, summarizer = null }) {
+function makeChatService({ openai, model = DEFAULT_MODEL, summarizer = null, tokenMeter = null }) {
   async function handleMessage({ sessionId, message }) {
     if (!message || !message.trim()) {
       throw new Error('message is required');
@@ -40,6 +40,9 @@ function makeChatService({ openai, model = DEFAULT_MODEL, summarizer = null }) {
       model,
       messages: history,
     });
+    if (tokenMeter && completion.usage) {
+      tokenMeter.recordUsage(completion.usage.prompt_tokens, completion.usage.completion_tokens);
+    }
     const reply = completion.choices[0].message.content;
     sm.appendMessage(id, 'assistant', reply);
     const vitalsDelta = parseVitals(reply);

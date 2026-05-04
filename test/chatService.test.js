@@ -8,14 +8,14 @@ function setup() {
   getDb(':memory:');
 }
 
-function fakeOpenAI(reply) {
+function fakeOpenAI(reply, usage = { prompt_tokens: 100, completion_tokens: 50 }) {
   const fake = {
     lastMessages: null,
     chat: {
       completions: {
         create: async ({ messages }) => {
           fake.lastMessages = messages;
-          return { choices: [{ message: { role: 'assistant', content: reply } }] };
+          return { choices: [{ message: { role: 'assistant', content: reply } }], usage };
         },
       },
     },
@@ -67,6 +67,20 @@ exports.tests = [
         () => svc.handleMessage({ sessionId: null, message: '   ' }),
         /message/i
       );
+    },
+  },
+  {
+    name: 'records token usage to the meter when one is provided',
+    fn: async () => {
+      setup();
+      const recorded = [];
+      const fakeMeter = { recordUsage: (p, c) => recorded.push([p, c]) };
+      const svc = makeChatService({
+        openai: fakeOpenAI('hi', { prompt_tokens: 42, completion_tokens: 7 }),
+        tokenMeter: fakeMeter,
+      });
+      await svc.handleMessage({ sessionId: null, message: 'hello' });
+      assert.deepStrictEqual(recorded, [[42, 7]]);
     },
   },
 ];
