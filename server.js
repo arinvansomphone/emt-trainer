@@ -1,4 +1,6 @@
 require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -18,6 +20,17 @@ function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard 
   app.use('/api/chat', createChatRouter(chatService, tokenGuard));
   app.use('/api', createScenarioRouter(scenarioGenerator, tokenGuard));
   app.use('/api/sessions', createSessionsRouter({ gradingService, tokenGuard }));
+
+  const distDir = path.join(__dirname, 'dist');
+  if (fs.existsSync(distDir)) {
+    app.use(express.static(distDir));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/')) return next();
+      res.sendFile(path.join(distDir, 'index.html'));
+    });
+  }
+  app.use('/api', (req, res) => res.status(404).json({ error: 'not found' }));
+
   return app;
 }
 
