@@ -1,8 +1,9 @@
 const express = require('express');
 
-function createChatRouter(chatService) {
+function createChatRouter(chatService, tokenGuard) {
   const router = express.Router();
-  router.post('/', async (req, res) => {
+  const guard = tokenGuard || ((req, res, next) => next());
+  router.post('/', guard, async (req, res) => {
     const { sessionId = null, message } = req.body || {};
     if (!message || typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ error: 'message is required' });

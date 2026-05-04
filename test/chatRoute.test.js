@@ -53,4 +53,18 @@ exports.tests = [
       assert.strictEqual(res.status, 500);
     },
   },
+  {
+    name: 'POST /api/chat returns 503 when tokenGuard rejects',
+    fn: async () => {
+      const express = require('express');
+      const { createChatRouter } = require('../routes/chat');
+      const app = express();
+      app.use(express.json());
+      const tokenGuard = (req, res) => res.status(503).json({ error: 'quota' });
+      app.use('/api/chat', createChatRouter({ handleMessage: async () => ({ sessionId: 'x', reply: 'r' }) }, tokenGuard));
+      const res = await request(app).post('/api/chat').send({ message: 'hi' });
+      assert.strictEqual(res.status, 503);
+      assert.match(res.body.error, /quota/);
+    },
+  },
 ];
