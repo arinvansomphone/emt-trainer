@@ -1,0 +1,9 @@
+node_modules/
+.claude/
+dist/
+.env
+database/emt.db
+database/emt.db-journal
+database/emt.db-wal
+database/emt.db-shm
+.DS_Store

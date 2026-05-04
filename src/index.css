@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Pulse theme — light ─────────────────────────────────── */
+@theme {
+  --font-sans: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* shadcn surface (Pulse light) */
+  --color-background: #F2F7F5;
+  --color-foreground: #1C1A17;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1C1A17;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1C1A17;
+  --color-primary: #1B7F7A;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #E5EFEB;
+  --color-secondary-foreground: #1C1A17;
+  --color-muted: #E5EFEB;
+  --color-muted-foreground: #4A463F;
+  --color-accent: #E5EFEB;
+  --color-accent-foreground: #1C1A17;
+  --color-destructive: #C2362A;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #DDE8E3;
+  --color-input: #DDE8E3;
+  --color-ring: #1B7F7A;
+
+  /* Pulse extras */
+  --color-accent-2: #4FC2D9;
+  --color-accent-soft: #D6EEEA;
+  --color-line-2: #B9CFC6;
+  --color-ink-3: #7A7468;
+
+  /* Status */
+  --color-good: #1F8A56;
+  --color-good-soft: #DDF1E5;
+  --color-warn: #C77400;
+  --color-warn-soft: #FCE9CB;
+  --color-bad: #C2362A;
+  --color-bad-soft: #FBE0DD;
+  --color-info: #2D6CDF;
+  --color-info-soft: #E0EAFB;
+
+  /* Chat role colors */
+  --color-patient: #1C1A17;
+  --color-patient-soft: #F4EFE6;
+  --color-moderator: #1B7F7A;
+  --color-moderator-soft: #D6EEEA;
+  --color-bystander: #8C5A1A;
+  --color-bystander-soft: #F4E5C8;
+
+  --radius: 0.875rem;
+  --shadow-card: 0 1px 0 rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.08);
+}
+
+/* ── Pulse theme — dark ──────────────────────────────────── */
+.dark {
+  --color-background: #0E1715;
+  --color-foreground: #F4EFE3;
+  --color-card: #14201D;
+  --color-card-foreground: #F4EFE3;
+  --color-popover: #14201D;
+  --color-popover-foreground: #F4EFE3;
+  --color-primary: #4FC2D9;
+  --color-primary-foreground: #0E1715;
+  --color-secondary: #1B2A26;
+  --color-secondary-foreground: #F4EFE3;
+  --color-muted: #1B2A26;
+  --color-muted-foreground: #C9C3B3;
+  --color-accent: #1B2A26;
+  --color-accent-foreground: #F4EFE3;
+  --color-destructive: #C2362A;
+  --color-destructive-foreground: #F4EFE3;
+  --color-border: #1F2E2A;
+  --color-input: #1F2E2A;
+  --color-ring: #4FC2D9;
+
+  --color-accent-2: #7CE3B8;
+  --color-accent-soft: rgba(79, 194, 217, 0.16);
+  --color-line-2: #2D3F3A;
+  --color-ink-3: #8A8472;
+
+  --color-good-soft: rgba(31, 138, 86, 0.18);
+  --color-warn-soft: rgba(199, 116, 0, 0.22);
+  --color-bad-soft: rgba(194, 54, 42, 0.22);
+  --color-info-soft: rgba(45, 108, 223, 0.22);
+
+  --color-patient: #F4EFE3;
+  --color-patient-soft: #1B2A26;
+  --color-moderator: #7CE3B8;
+  --color-moderator-soft: rgba(79, 194, 217, 0.16);
+  --color-bystander: #F2B544;
+  --color-bystander-soft: rgba(140, 90, 26, 0.32);
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+  font-family: var(--font-sans);
+  letter-spacing: -0.005em;
+}
+
+/* Display & label helpers */
+.h-display { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.02em; line-height: 0.95; }
+.label-eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-ink-3); font-weight: 500; }
+.num-display { font-family: var(--font-serif); font-feature-settings: "lnum", "tnum"; font-variant-numeric: lining-nums tabular-nums; }
