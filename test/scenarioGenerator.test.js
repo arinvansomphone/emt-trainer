@@ -53,4 +53,22 @@ exports.tests = [
       await assert.rejects(() => gen.generate('trauma', 'MVC'));
     },
   },
+  {
+    name: 'records token usage to the meter when provided',
+    fn: async () => {
+      const recorded = [];
+      const fakeMeter = { recordUsage: (p, c) => recorded.push([p, c]) };
+      const fakeOpenAIWithUsage = {
+        chat: { completions: {
+          create: async () => ({
+            choices: [{ message: { content: validJson } }],
+            usage: { prompt_tokens: 200, completion_tokens: 80 },
+          }),
+        }},
+      };
+      const gen = makeScenarioGenerator({ openai: fakeOpenAIWithUsage, tokenMeter: fakeMeter });
+      await gen.generate('trauma', 'MVC');
+      assert.deepStrictEqual(recorded, [[200, 80]]);
+    },
+  },
 ];

@@ -31,7 +31,7 @@ const SYSTEM_PROMPT = `You generate realistic EMT training scenarios as STRICT J
 }
 Include 0-2 bystanders only when realistic (witnesses for trauma, family for medical, etc.). Findings must be CONSISTENT with the chief complaint and vitals. For burns, specify location (e.g., "right arm") and degree. For trauma, name affected sides explicitly. Return ONLY the JSON object. No prose.`;
 
-function makeScenarioGenerator({ openai, model = DEFAULT_MODEL }) {
+function makeScenarioGenerator({ openai, model = DEFAULT_MODEL, tokenMeter = null }) {
   async function generate(type, subtype) {
     if (!isValid(type, subtype)) throw new Error(`invalid type/subtype: ${type}/${subtype}`);
     const completion = await openai.chat.completions.create({
@@ -42,6 +42,9 @@ function makeScenarioGenerator({ openai, model = DEFAULT_MODEL }) {
         { role: 'user', content: getTemplate(type, subtype) },
       ],
     });
+    if (tokenMeter && completion.usage) {
+      tokenMeter.recordUsage(completion.usage.prompt_tokens, completion.usage.completion_tokens);
+    }
     const raw = completion.choices[0].message.content;
     const parsed = JSON.parse(raw);
     if (!parsed.patientProfile || !parsed.environment || !parsed.physicalFindings) {
