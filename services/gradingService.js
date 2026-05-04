@@ -102,7 +102,7 @@ function auditGrade(parsed, history) {
   return parsed;
 }
 
-function makeGradingService({ openai, model = DEFAULT_MODEL }) {
+function makeGradingService({ openai, model = DEFAULT_MODEL, tokenMeter = null }) {
   async function gradeSession(sessionId) {
     const row = sm.getSession(sessionId);
     if (!row) throw new Error('session not found');
@@ -136,6 +136,9 @@ function makeGradingService({ openai, model = DEFAULT_MODEL }) {
         { role: 'user', content: userMsg },
       ],
     });
+    if (tokenMeter && completion.usage) {
+      tokenMeter.recordUsage(completion.usage.prompt_tokens, completion.usage.completion_tokens);
+    }
     const raw = completion.choices[0].message.content;
     const parsed = JSON.parse(raw);
     if (!parsed.overall || !parsed.rubric) throw new Error('grading result missing fields');

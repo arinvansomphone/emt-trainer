@@ -140,4 +140,43 @@ exports.tests = [
       assert.match(parsed.rubric[0].feedback, /No verifiable transcript evidence/i);
     },
   },
+  {
+    name: 'gradeSession records token usage to the meter when provided',
+    fn: async () => {
+      const { resetForTests, getDb } = require('../database/databaseManager');
+      const sm = require('../services/sessionManager');
+      const { makeGradingService } = require('../services/gradingService');
+      resetForTests();
+      getDb(':memory:');
+      const sid = sm.createSession();
+      sm.setScenario(sid, 'medical', JSON.stringify({
+        type: 'medical', subtype: 'Cardiac', dispatch: 'd',
+        patientProfile: { name: 'X', age: 60, sex: 'male', chiefComplaint: 'chest pain', vitals: { hr: 90, bp: '140/90', rr: 18, spo2: 96, gcs: 15 } },
+        currentVitals: { hr: 90, bp: '140/90', rr: 18, spo2: 96, gcs: 15 },
+        expectedAssessment: 'medical',
+      }));
+      sm.appendMessage(sid, 'user', 'check vitals');
+      sm.appendMessage(sid, 'assistant', '[Moderator] HR 90');
+
+      const recorded = [];
+      const fakeMeter = { recordUsage: (p, c) => recorded.push([p, c]) };
+      const fakeOpenAI = {
+        chat: {
+          completions: {
+            create: async () => ({
+              choices: [{ message: { content: JSON.stringify({
+                overall: { score: 50, summary: 's' },
+                rubric: [{ criterion: 'Vital signs obtained', score: 0, quotes: [], feedback: 'none' }],
+                strengths: [], improvements: [],
+              }) } }],
+              usage: { prompt_tokens: 1500, completion_tokens: 400 },
+            }),
+          },
+        },
+      };
+      const svc = makeGradingService({ openai: fakeOpenAI, tokenMeter: fakeMeter });
+      await svc.gradeSession(sid);
+      assert.deepStrictEqual(recorded, [[1500, 400]]);
+    },
+  },
 ];
