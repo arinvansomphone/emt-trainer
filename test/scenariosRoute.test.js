@@ -60,4 +60,33 @@ exports.tests = [
       assert.strictEqual(res.status, 400);
     },
   },
+  {
+    name: 'POST /api/scenarios returns 503 when tokenGuard rejects',
+    fn: async () => {
+      setup();
+      const tokenGuard = (req, res) => res.status(503).json({ error: 'quota' });
+      const app = createApp({
+        chatService: fakeChatService(),
+        scenarioGenerator: fakeScenarioGen(),
+        tokenGuard,
+      });
+      const res = await request(app).post('/api/scenarios').send({ type: 'trauma', subtype: 'MVC' });
+      assert.strictEqual(res.status, 503);
+      assert.match(res.body.error, /quota/);
+    },
+  },
+  {
+    name: 'GET /api/scenario-types is NOT gated by tokenGuard',
+    fn: async () => {
+      setup();
+      const tokenGuard = (req, res) => res.status(503).json({ error: 'quota' });
+      const app = createApp({
+        chatService: fakeChatService(),
+        scenarioGenerator: fakeScenarioGen(),
+        tokenGuard,
+      });
+      const res = await request(app).get('/api/scenario-types');
+      assert.strictEqual(res.status, 200);
+    },
+  },
 ];

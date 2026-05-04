@@ -2,12 +2,13 @@ const express = require('express');
 const { CATALOG, isValid } = require('../services/scenarioTypes');
 const sm = require('../services/sessionManager');
 
-function createScenarioRouter(scenarioGenerator) {
+function createScenarioRouter(scenarioGenerator, tokenGuard) {
   const router = express.Router();
+  const guard = tokenGuard || ((req, res, next) => next());
 
   router.get('/scenario-types', (_req, res) => res.json(CATALOG));
 
-  router.post('/scenarios', async (req, res) => {
+  router.post('/scenarios', guard, async (req, res) => {
     const { type, subtype } = req.body || {};
     if (!isValid(type, subtype)) {
       return res.status(400).json({ error: 'invalid type or subtype' });

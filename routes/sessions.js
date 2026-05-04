@@ -1,8 +1,9 @@
 const express = require('express');
 const sm = require('../services/sessionManager');
 
-function createSessionsRouter({ gradingService } = {}) {
+function createSessionsRouter({ gradingService, tokenGuard } = {}) {
   const router = express.Router();
+  const guard = tokenGuard || ((req, res, next) => next());
 
   router.get('/:id', (req, res) => {
     const row = sm.getSession(req.params.id);
@@ -19,7 +20,7 @@ function createSessionsRouter({ gradingService } = {}) {
     });
   });
 
-  router.post('/:id/grade', async (req, res) => {
+  router.post('/:id/grade', guard, async (req, res) => {
     if (!gradingService) return res.status(501).json({ error: 'grading not enabled' });
     try {
       const result = await gradingService.gradeSession(req.params.id);
