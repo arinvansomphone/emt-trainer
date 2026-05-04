@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: emt-trainer
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SERVICE_DISABLED
+        value: "false"
+      - key: DAILY_TOKEN_BUDGET
+        value: "200000"
