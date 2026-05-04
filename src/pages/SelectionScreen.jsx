@@ -43,7 +43,8 @@ export default function SelectionScreen() {
   return (
     <div className="mt-6">
       <h1 className="text-2xl font-semibold tracking-tight">Choose a scenario</h1>
-      <p className="text-sm text-muted-foreground mb-4">Pick a category, then a subtype to begin.</p>
+      <p className="text-sm text-muted-foreground mb-1">Pick a category, then a subtype to begin.</p>
+      <p className="text-xs text-muted-foreground mb-4">First click after a quiet period may take ~30 seconds while the server wakes up — this is normal.</p>
       <Tabs defaultValue="trauma">
         <TabsList>
           <TabsTrigger value="trauma">Trauma</TabsTrigger>
