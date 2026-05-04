@@ -105,3 +105,8 @@ The app deploys as a single Render Web Service that serves both `/api/*` and the
 ### Upgrade path
 
 Render dashboard → service → Settings → Plan → Starter. No code changes. For SQLite continuity across redeploys, also add a persistent disk ($1/mo) and set `DB_PATH` to a path on the disk (small `databaseManager` change required at that time).
+
+### Caveats
+
+- **Daily token meter is process-local.** The counter lives in memory in a single Node process. If you ever scale horizontally (multiple instances on a paid Render plan), each instance has its own counter and the effective daily cap becomes `instances × DAILY_TOKEN_BUDGET`. Free tier is single-instance so this is fine for v1; revisit when you go multi-instance.
+- **Rate limit is global on Render.** With `app.set('trust proxy', 1)`, `express-rate-limit` reads the real client IP from `X-Forwarded-For` and applies the 60-req/min limit per IP. Without trust-proxy, all requests would have looked like one IP and the limit would have been service-wide. Both are valid abuse postures; we chose per-IP. If you want service-wide instead, remove the `trust proxy` line.

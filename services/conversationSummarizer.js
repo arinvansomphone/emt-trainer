@@ -4,7 +4,7 @@ const DEFAULT_MODEL = 'gpt-4o-mini';
 const TRIGGER_AT = 30;
 const KEEP_RECENT = 8;
 
-function makeSummarizer({ openai, model = DEFAULT_MODEL }) {
+function makeSummarizer({ openai, model = DEFAULT_MODEL, tokenMeter = null }) {
   async function maybeSummarize(sessionId) {
     const history = sm.getHistory(sessionId);
     if (history.length < TRIGGER_AT) return false;
@@ -18,6 +18,9 @@ function makeSummarizer({ openai, model = DEFAULT_MODEL }) {
         { role: 'user', content: transcript },
       ],
     });
+    if (tokenMeter && completion.usage) {
+      tokenMeter.recordUsage(completion.usage.prompt_tokens, completion.usage.completion_tokens);
+    }
     const summary = completion.choices[0].message.content;
     const row = sm.getSession(sessionId);
     const systemMsgs = head.filter((m) => m.role === 'system');

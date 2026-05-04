@@ -12,6 +12,9 @@ const { killSwitch, makeTokenMeter } = require('./services/abuseGuards');
 
 function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard } = {}) {
   const app = express();
+  // Render terminates TLS at its proxy; trust one hop so express-rate-limit
+  // and req.ip read the real client IP from X-Forwarded-For.
+  app.set('trust proxy', 1);
   app.use(helmet());
   app.use(cors());
   app.use(express.json({ limit: '1mb' }));
@@ -41,7 +44,7 @@ function start() {
   const { makeGradingService } = require('./services/gradingService');
   const { makeSummarizer } = require('./services/conversationSummarizer');
   const tokenMeter = makeTokenMeter();
-  const summarizer = makeSummarizer({ openai });
+  const summarizer = makeSummarizer({ openai, tokenMeter });
   const chatService = makeChatService({ openai, summarizer, tokenMeter });
   const scenarioGenerator = makeScenarioGenerator({ openai, tokenMeter });
   const gradingService = makeGradingService({ openai, tokenMeter });

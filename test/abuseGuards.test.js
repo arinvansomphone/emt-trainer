@@ -20,7 +20,7 @@ exports.tests = [
       const res = makeRes();
       let nextCalled = false;
       killSwitch({}, res, () => { nextCalled = true; });
-      process.env.SERVICE_DISABLED = prev;
+      if (prev === undefined) delete process.env.SERVICE_DISABLED; else process.env.SERVICE_DISABLED = prev;
       assert.strictEqual(res.statusCode, 503);
       assert.strictEqual(nextCalled, false);
       assert.match(res.body.error, /disabled/i);
@@ -34,7 +34,7 @@ exports.tests = [
       const res = makeRes();
       let nextCalled = false;
       killSwitch({}, res, () => { nextCalled = true; });
-      process.env.SERVICE_DISABLED = prev;
+      if (prev === undefined) delete process.env.SERVICE_DISABLED; else process.env.SERVICE_DISABLED = prev;
       assert.strictEqual(res.statusCode, 200);
       assert.strictEqual(nextCalled, true);
     },
@@ -47,7 +47,7 @@ exports.tests = [
       const res = makeRes();
       let nextCalled = false;
       killSwitch({}, res, () => { nextCalled = true; });
-      process.env.SERVICE_DISABLED = prev;
+      if (prev === undefined) delete process.env.SERVICE_DISABLED; else process.env.SERVICE_DISABLED = prev;
       assert.strictEqual(nextCalled, true);
     },
   },
@@ -112,7 +112,23 @@ exports.tests = [
       process.env.DAILY_TOKEN_BUDGET = '500';
       const meter = makeTokenMeter({ defaultBudget: 1000, now: () => new Date('2026-05-04T12:00:00Z') });
       assert.strictEqual(meter.snapshot().budget, 500);
-      process.env.DAILY_TOKEN_BUDGET = prev;
+      if (prev === undefined) delete process.env.DAILY_TOKEN_BUDGET; else process.env.DAILY_TOKEN_BUDGET = prev;
+    },
+  },
+  {
+    name: 'killSwitch is mounted on /api/ via createApp end-to-end',
+    fn: async () => {
+      const request = require('supertest');
+      const { createApp } = require('../server');
+      const { resetForTests, getDb } = require('../database/databaseManager');
+      resetForTests(); getDb(':memory:');
+      const prev = process.env.SERVICE_DISABLED;
+      process.env.SERVICE_DISABLED = 'true';
+      const app = createApp({});
+      const res = await request(app).get('/api/scenario-types');
+      if (prev === undefined) delete process.env.SERVICE_DISABLED; else process.env.SERVICE_DISABLED = prev;
+      assert.strictEqual(res.status, 503);
+      assert.match(res.body.error, /disabled/i);
     },
   },
 ];
