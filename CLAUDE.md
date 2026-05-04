@@ -82,3 +82,26 @@ medical: Cardiac, Respiratory, Neurological, Metabolic, Obstetric, Pediatric, Ov
 - **Speech-to-text**: not implemented. Add via Web Speech API or Whisper later.
 - **gh-pages deploy**: not wired. Add `gh-pages` script + GH Pages config when you want a live demo.
 - **Per-bystander avatar / explicit chat actor switcher**: bystanders surface as named lines in chat, not as a separate UI lane.
+
+## Deployment (Render free tier)
+
+The app deploys as a single Render Web Service that serves both `/api/*` and the built React app from one origin. Configuration lives in `render.yaml`.
+
+### One-time setup
+
+1. **Cap OpenAI spend.** In your OpenAI billing dashboard, set a hard monthly usage limit (suggested: $25). This is the ultimate budget backstop.
+2. **Push to a Git remote.** Create a GitHub (or GitLab/Bitbucket) repo, then `git remote add origin <url> && git push -u origin main`.
+3. **Connect Render.** Sign in at render.com → New → Blueprint → connect the repo → Render reads `render.yaml` and creates the service.
+4. **Set the OpenAI key** in Render → service → Environment → add `OPENAI_API_KEY` with your real key.
+5. **First deploy** runs automatically. Visit the `*.onrender.com` URL Render assigns.
+
+### Operating
+
+- **Logs:** Render dashboard → service → Logs (tail in real time).
+- **Kill switch:** set `SERVICE_DISABLED=true` in Environment + redeploy. All `/api/*` returns 503 within ~90s.
+- **Adjust daily budget:** change `DAILY_TOKEN_BUDGET` in Environment + redeploy.
+- **Cold starts:** free tier sleeps after 15 min idle; first request after sleep takes ~30s. Upgrade to starter ($7/mo) to eliminate.
+
+### Upgrade path
+
+Render dashboard → service → Settings → Plan → Starter. No code changes. For SQLite continuity across redeploys, also add a persistent disk ($1/mo) and set `DB_PATH` to a path on the disk (small `databaseManager` change required at that time).
