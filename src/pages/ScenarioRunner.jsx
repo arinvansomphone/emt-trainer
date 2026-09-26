@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Mic, MicOff, RotateCcw, Square } from 'lucide-react';
 import { AssistantMessage, UserMessage } from '@/components/ChatBubbles';
 import { useSpeechRecognition } from '@/lib/useSpeech';
+import { apiFetch } from '@/lib/api';
 
 export default function ScenarioRunner() {
   const { id } = useParams();
@@ -60,13 +61,7 @@ export default function ScenarioRunner() {
     setInput('');
     setBusy(true);
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: id, message: text }),
-      });
-      if (!res.ok) throw new Error(`server returned ${res.status}`);
-      const data = await res.json();
+      const data = await apiFetch('/api/chat', { body: { sessionId: id, message: text } });
       setMessages((m) => [...m, { role: 'assistant', content: data.reply }]);
     } catch (err) {
       setError(err.message);
@@ -79,9 +74,7 @@ export default function ScenarioRunner() {
     if (!confirm('End the scenario and grade your performance?')) return;
     setGrading(true);
     try {
-      const res = await fetch(`/api/sessions/${id}/grade`, { method: 'POST' });
-      if (!res.ok) throw new Error(`grading returned ${res.status}`);
-      const grade = await res.json();
+      const grade = await apiFetch(`/api/sessions/${id}/grade`, { method: 'POST' });
       sessionStorage.setItem(`grade:${id}`, JSON.stringify(grade));
       navigate(`/session/${id}/feedback`);
     } catch (err) {
@@ -95,13 +88,7 @@ export default function ScenarioRunner() {
     if (!scenario) return;
     if (!confirm('Restart with a fresh scenario of the same subtype?')) return;
     try {
-      const res = await fetch('/api/scenarios', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: scenario.type, subtype: scenario.subtype }),
-      });
-      if (!res.ok) throw new Error(`server returned ${res.status}`);
-      const data = await res.json();
+      const data = await apiFetch('/api/scenarios', { body: { type: scenario.type, subtype: scenario.subtype } });
       sessionStorage.setItem(`scenario:${data.sessionId}`, JSON.stringify(data.scenario));
       navigate(`/session/${data.sessionId}`);
     } catch (err) {

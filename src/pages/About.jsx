@@ -14,7 +14,7 @@ export default function About() {
             EMT Scenario Trainer is an AI-powered simulator for trauma and medical scenarios.
             You pick a scenario, talk to the patient and bystanders, perform physical assessments and interventions,
             and the moderator narrates findings drawn from a per-scenario findings map. Vitals shift in response to interventions.
-            When you're done, an AI grader scores your run against a Stanford-style EMT rubric.
+            When you're done, an AI grader scores your run against an NREMT-style patient assessment rubric.
           </p>
           <Separator />
           <div>

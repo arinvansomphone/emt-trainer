@@ -179,4 +179,28 @@ exports.tests = [
       assert.deepStrictEqual(recorded, [[1500, 400]]);
     },
   },
+  {
+    name: 'gradeSession returns the stored grade without calling openai again',
+    fn: async () => {
+      const { resetForTests, getDb } = require('../database/databaseManager');
+      const sm = require('../services/sessionManager');
+      const { makeGradingService } = require('../services/gradingService');
+      resetForTests();
+      getDb(':memory:');
+      const sid = sm.createSession();
+      const stored = { overall: { score: 70, summary: 'stored' }, rubric: [], strengths: [], improvements: [] };
+      sm.setScenario(sid, 'medical', JSON.stringify({
+        type: 'medical', subtype: 'Cardiac', dispatch: 'd',
+        patientProfile: { name: 'X', age: 60, sex: 'male', chiefComplaint: 'chest pain', vitals: {} },
+        expectedAssessment: 'medical',
+        grade: stored,
+      }));
+      let calls = 0;
+      const fakeOpenAI = { chat: { completions: { create: async () => { calls++; throw new Error('should not be called'); } } } };
+      const svc = makeGradingService({ openai: fakeOpenAI });
+      const result = await svc.gradeSession(sid);
+      assert.strictEqual(calls, 0);
+      assert.deepStrictEqual(result, stored);
+    },
+  },
 ];

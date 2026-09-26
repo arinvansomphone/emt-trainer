@@ -42,4 +42,34 @@ exports.tests = [
       assert.strictEqual(sm.getSession('nope'), null);
     },
   },
+  {
+    name: 'getContext returns the full history when no summary exists',
+    fn: () => {
+      setup();
+      const id = sm.createSession();
+      sm.appendMessage(id, 'system', 'sys');
+      sm.appendMessage(id, 'user', 'hello');
+      assert.deepStrictEqual(sm.getContext(id), sm.getHistory(id));
+    },
+  },
+  {
+    name: 'getContext replaces summarized messages with the summary; getHistory stays full',
+    fn: () => {
+      setup();
+      const id = sm.createSession();
+      sm.appendMessage(id, 'system', 'sys');
+      sm.appendMessage(id, 'user', 'early 1');
+      sm.appendMessage(id, 'assistant', 'early 2');
+      sm.appendMessage(id, 'user', 'late');
+      const unsummarized = sm.getUnsummarized(id);
+      sm.setSummary(id, 'S', unsummarized[1].id);
+      assert.deepStrictEqual(sm.getContext(id), [
+        { role: 'system', content: 'sys' },
+        { role: 'system', content: 'Earlier in this scenario:\nS' },
+        { role: 'user', content: 'late' },
+      ]);
+      assert.strictEqual(sm.getHistory(id).length, 4);
+      assert.deepStrictEqual(sm.getUnsummarized(id).map((m) => m.content), ['late']);
+    },
+  },
 ];

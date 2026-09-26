@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 export default function SelectionScreen() {
   const navigate = useNavigate();
@@ -12,19 +13,13 @@ export default function SelectionScreen() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/api/scenario-types').then(r => r.json()).then(setCatalog).catch(e => setError(e.message));
+    apiFetch('/api/scenario-types').then(setCatalog).catch(e => setError(e.message));
   }, []);
 
   async function start(type, subtype) {
     setBusy(subtype); setError(null);
     try {
-      const res = await fetch('/api/scenarios', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, subtype }),
-      });
-      if (!res.ok) throw new Error(`server returned ${res.status}`);
-      const data = await res.json();
+      const data = await apiFetch('/api/scenarios', { body: { type, subtype } });
       sessionStorage.setItem(`scenario:${data.sessionId}`, JSON.stringify(data.scenario));
       navigate(`/session/${data.sessionId}`);
     } catch (e) {

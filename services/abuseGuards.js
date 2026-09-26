@@ -1,6 +1,6 @@
 function killSwitch(req, res, next) {
   if (process.env.SERVICE_DISABLED === 'true') {
-    return res.status(503).json({ error: 'service temporarily disabled' });
+    return res.status(503).json({ error: 'The trainer is temporarily offline. Please try again later.' });
   }
   next();
 }
@@ -9,7 +9,7 @@ function ymd(d) {
   return d.toISOString().slice(0, 10);
 }
 
-function makeTokenMeter({ defaultBudget = 200_000, now = () => new Date() } = {}) {
+function makeTokenMeter({ defaultBudget = 1_500_000, now = () => new Date() } = {}) {
   let date = ymd(now());
   let tokens = 0;
 
@@ -32,7 +32,7 @@ function makeTokenMeter({ defaultBudget = 200_000, now = () => new Date() } = {}
   function guardMiddleware(req, res, next) {
     maybeRoll();
     if (tokens >= getBudget()) {
-      return res.status(503).json({ error: 'daily token quota reached, try again tomorrow' });
+      return res.status(503).json({ error: 'The trainer has reached its daily usage limit. Please try again tomorrow.' });
     }
     next();
   }

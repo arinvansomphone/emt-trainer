@@ -1,6 +1,7 @@
 const express = require('express');
 const { CATALOG, isValid } = require('../services/scenarioTypes');
 const sm = require('../services/sessionManager');
+const { aiErrorResponse } = require('../services/aiErrors');
 
 function createScenarioRouter(scenarioGenerator, tokenGuard) {
   const router = express.Router();
@@ -19,7 +20,7 @@ function createScenarioRouter(scenarioGenerator, tokenGuard) {
       const sessionId = sm.createSession();
       sm.setScenario(sessionId, type, JSON.stringify(scenario));
       const systemMsg = [
-        'You are running an EMT training simulation. You play TWO distinct roles and MUST switch voices based on what the EMT (the user) does:',
+        'You are running an EMT training simulation. You play THREE distinct roles and MUST switch voices based on what the EMT (the user) does:',
         '',
         '1) PATIENT — when the user speaks TO the patient, asks the patient a question, gives the patient an instruction, or makes verbal contact, respond as the patient. Use first person. Stay in character given age, sex, and condition. If GCS is altered, slur words, give short answers, or be confused as appropriate. Do NOT prefix your response — just speak as the patient.',
         '',
@@ -43,6 +44,8 @@ function createScenarioRouter(scenarioGenerator, tokenGuard) {
       res.json({ sessionId, scenario });
     } catch (err) {
       console.error('[scenarios] error:', err);
+      const ai = aiErrorResponse(err);
+      if (ai) return res.status(ai.status).json({ error: ai.error });
       res.status(500).json({ error: 'scenario generation failed' });
     }
   });

@@ -1,5 +1,6 @@
 const express = require('express');
 const sm = require('../services/sessionManager');
+const { aiErrorResponse } = require('../services/aiErrors');
 
 function createSessionsRouter({ gradingService, tokenGuard } = {}) {
   const router = express.Router();
@@ -16,6 +17,7 @@ function createSessionsRouter({ gradingService, tokenGuard } = {}) {
       scenario: state,
       currentVitals: state?.currentVitals ?? state?.patientProfile?.vitals ?? null,
       bystanders: state?.bystanders ?? [],
+      grade: state?.grade ?? null,
       messages,
     });
   });
@@ -27,6 +29,8 @@ function createSessionsRouter({ gradingService, tokenGuard } = {}) {
       res.json(result);
     } catch (err) {
       console.error('[grade] error:', err);
+      const ai = aiErrorResponse(err);
+      if (ai) return res.status(ai.status).json({ error: ai.error });
       res.status(500).json({ error: 'grading failed' });
     }
   });

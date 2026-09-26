@@ -18,7 +18,16 @@ function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard 
   app.use(helmet());
   app.use(cors());
   app.use(express.json({ limit: '1mb' }));
-  app.use('/api/', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
+  // Only POSTs hit OpenAI. Classrooms share one NAT IP, so keep this generous;
+  // the daily token meter is the real spend cap.
+  app.use('/api/', rateLimit({
+    windowMs: 60_000,
+    limit: Number(process.env.RATE_LIMIT_PER_MIN) || 300,
+    skip: (req) => req.method === 'GET',
+    message: { error: 'Too many requests from your network. Please wait a minute and try again.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  }));
   app.use('/api/', killSwitch);
   app.use('/api/chat', createChatRouter(chatService, tokenGuard));
   app.use('/api', createScenarioRouter(scenarioGenerator, tokenGuard));

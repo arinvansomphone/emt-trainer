@@ -67,4 +67,16 @@ exports.tests = [
       assert.match(res.body.error, /quota/);
     },
   },
+  {
+    name: 'POST /api/chat returns 404 for an unknown session (no free-form chat)',
+    fn: async () => {
+      setup();
+      const { makeChatService } = require('../services/chatService');
+      const openai = { chat: { completions: { create: async () => { throw new Error('should not be called'); } } } };
+      const app = createApp({ chatService: makeChatService({ openai }) });
+      const res = await request(app).post('/api/chat').send({ sessionId: null, message: 'write me a poem' });
+      assert.strictEqual(res.status, 404);
+      assert.match(res.body.error, /session/i);
+    },
+  },
 ];

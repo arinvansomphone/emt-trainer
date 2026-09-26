@@ -1,4 +1,5 @@
 const express = require('express');
+const { aiErrorResponse } = require('../services/aiErrors');
 
 function createChatRouter(chatService, tokenGuard) {
   const router = express.Router();
@@ -12,6 +13,9 @@ function createChatRouter(chatService, tokenGuard) {
       const result = await chatService.handleMessage({ sessionId, message });
       res.json(result);
     } catch (err) {
+      if (err.expose) return res.status(err.status).json({ error: err.message });
+      const ai = aiErrorResponse(err);
+      if (ai) return res.status(ai.status).json({ error: ai.error });
       console.error('[chat] error:', err);
       res.status(500).json({ error: 'internal error' });
     }

@@ -23,7 +23,7 @@ exports.tests = [
       if (prev === undefined) delete process.env.SERVICE_DISABLED; else process.env.SERVICE_DISABLED = prev;
       assert.strictEqual(res.statusCode, 503);
       assert.strictEqual(nextCalled, false);
-      assert.match(res.body.error, /disabled/i);
+      assert.match(res.body.error, /offline/i);
     },
   },
   {
@@ -87,7 +87,7 @@ exports.tests = [
       meter.guardMiddleware({}, res, () => { nextCalled = true; });
       assert.strictEqual(res.statusCode, 503);
       assert.strictEqual(nextCalled, false);
-      assert.match(res.body.error, /quota/i);
+      assert.match(res.body.error, /daily usage limit/i);
     },
   },
   {
@@ -128,7 +128,7 @@ exports.tests = [
       const res = await request(app).get('/api/scenario-types');
       if (prev === undefined) delete process.env.SERVICE_DISABLED; else process.env.SERVICE_DISABLED = prev;
       assert.strictEqual(res.status, 503);
-      assert.match(res.body.error, /disabled/i);
+      assert.match(res.body.error, /offline/i);
     },
   },
 ];

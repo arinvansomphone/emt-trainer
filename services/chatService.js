@@ -25,17 +25,26 @@ function applyVitals(sessionId, partial) {
   sm.setScenario(sessionId, row.scenario_type, JSON.stringify(state));
 }
 
+function httpError(status, message) {
+  const err = new Error(message);
+  err.status = status;
+  err.expose = true;
+  return err;
+}
+
 function makeChatService({ openai, model = DEFAULT_MODEL, summarizer = null, tokenMeter = null }) {
   async function handleMessage({ sessionId, message }) {
     if (!message || !message.trim()) {
       throw new Error('message is required');
     }
-    let id = sessionId;
-    if (!id || !sm.getSession(id)) {
-      id = sm.createSession();
-    }
+    // Only scenario sessions may chat; otherwise /api/chat is a free general-purpose LLM.
+    const row = sessionId ? sm.getSession(sessionId) : null;
+    if (!row) throw httpError(404, 'session not found');
+    if (!row.state) throw httpError(400, 'session has no scenario');
+    if (JSON.parse(row.state).grade) throw httpError(409, 'scenario already graded');
+    const id = sessionId;
     sm.appendMessage(id, 'user', message);
-    const history = sm.getHistory(id);
+    const history = sm.getContext(id);
     const completion = await openai.chat.completions.create({
       model,
       messages: history,

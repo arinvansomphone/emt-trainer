@@ -14,3 +14,11 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, id);
+
+-- Rolling summary of older turns. Messages are never deleted; the model sees
+-- system messages + this summary + messages with id > upto_id.
+CREATE TABLE IF NOT EXISTS summaries (
+  session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  upto_id INTEGER NOT NULL
+);

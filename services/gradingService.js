@@ -108,6 +108,7 @@ function makeGradingService({ openai, model = DEFAULT_MODEL, tokenMeter = null }
     if (!row) throw new Error('session not found');
     const state = row.state ? JSON.parse(row.state) : null;
     if (!state) throw new Error('no scenario on session');
+    if (state.grade) return state.grade;
     const history = sm.getHistory(sessionId).filter((m) => m.role !== 'system');
     const rubric = RUBRIC[state.expectedAssessment] || RUBRIC.medical;
 

@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { apiFetch } from '@/lib/api';
 
 function scoreColor(score) {
   if (score >= 3) return 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
@@ -15,11 +16,25 @@ function scoreColor(score) {
 export default function FeedbackDisplay() {
   const { id } = useParams();
   const [grade, setGrade] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const cached = sessionStorage.getItem(`grade:${id}`);
-    if (cached) setGrade(JSON.parse(cached));
+    if (cached) {
+      setGrade(JSON.parse(cached));
+      setLoading(false);
+      return;
+    }
+    // New tab, refresh, or shared link: the grade is stored on the session server-side.
+    apiFetch(`/api/sessions/${id}`)
+      .then((data) => setGrade(data.grade))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [id]);
+
+  if (loading) {
+    return <p className="mt-6 text-sm text-muted-foreground">Loading feedback…</p>;
+  }
 
   if (!grade) {
     return (

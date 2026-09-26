@@ -2,9 +2,9 @@ import { Routes, Route } from 'react-router-dom';
 import Header from '@/components/Header';
 import SelectionScreen from '@/pages/SelectionScreen';
 import ScenarioRunner from '@/pages/ScenarioRunner';
-import TestConnection from '@/pages/TestConnection';
 import FeedbackDisplay from '@/pages/FeedbackDisplay';
 import About from '@/pages/About';
+import Disclaimer from '@/components/Disclaimer';
 
 export default function App() {
   return (
@@ -15,8 +15,8 @@ export default function App() {
         <Route path="/session/:id" element={<ScenarioRunner />} />
         <Route path="/session/:id/feedback" element={<FeedbackDisplay />} />
         <Route path="/about" element={<About />} />
-        <Route path="/test" element={<TestConnection />} />
       </Routes>
+      <Disclaimer />
     </div>
   );
 }
