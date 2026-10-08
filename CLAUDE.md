@@ -16,7 +16,7 @@ A faithful rebuild of [arinvansomphone/emt-scenario-trainer](https://github.com/
 cp .env.example .env       # add OPENAI_API_KEY
 npm install
 npm run dev:all            # backend :3001, frontend :5173
-npm test                   # 64 tests
+npm test                   # 65 tests
 ```
 
 Note: backend listens on `:3001` (not 3000) to avoid clashing with another local Next.js dev server.
@@ -93,7 +93,7 @@ medical: Cardiac, Respiratory, Neurological, Metabolic, Obstetric, Pediatric, Ov
 
 ## Deployment (Render free tier)
 
-The app deploys as a single Render Web Service that serves both `/api/*` and the built React app from one origin. Configuration lives in `render.yaml`.
+The app deploys as a single Render Web Service (Starter plan, always on) that serves both `/api/*` and the built React app from one origin. Configuration lives in `render.yaml`. A 1 GB persistent disk is mounted at `/var/data`, and `DB_PATH=/var/data/emt.db` keeps SQLite sessions and grades across restarts and deploys.
 
 ### One-time setup
 
@@ -110,13 +110,13 @@ The app deploys as a single Render Web Service that serves both `/api/*` and the
 - **Adjust daily budget:** change `DAILY_TOKEN_BUDGET` in Environment + redeploy (default 1,500,000 ≈ 350 sessions/day).
 - **Adjust rate limit:** change `RATE_LIMIT_PER_MIN` (default 300, POST requests only).
 - **Feedback link:** set `VITE_FEEDBACK_URL` (e.g. a Google Form) and redeploy; it's baked in at build time. Unset = no link.
-- **Cold starts:** free tier sleeps after 15 min idle; first request after sleep takes ~30s. Upgrade to starter ($7/mo) to eliminate.
+- **Deploys:** services with a disk can't do zero-downtime deploys, so each deploy has a few seconds of downtime. Deploy outside class hours.
 
 ### Upgrade path
 
-Render dashboard → service → Settings → Plan → Starter. No code changes. For SQLite continuity across redeploys, also add a persistent disk ($1/mo) and set `DB_PATH` to a path on the disk (small `databaseManager` change required at that time).
+Need more headroom? Change `plan` in `render.yaml` (e.g. `standard` / `1c-2g`) and sync the Blueprint. The disk can grow (`sizeGB`) but never shrink.
 
 ### Caveats
 
-- **Daily token meter is process-local.** The counter lives in memory in a single Node process. If you ever scale horizontally (multiple instances on a paid Render plan), each instance has its own counter and the effective daily cap becomes `instances × DAILY_TOKEN_BUDGET`. Free tier is single-instance so this is fine for v1; revisit when you go multi-instance.
+- **Daily token meter is process-local.** The counter lives in memory in a single Node process. If you ever scale horizontally (multiple instances on a paid Render plan), each instance has its own counter and the effective daily cap becomes `instances × DAILY_TOKEN_BUDGET`. A disk-backed service is single-instance, so this is fine; revisit when you go multi-instance.
 - **Rate limit is global on Render.** With `app.set('trust proxy', 1)`, `express-rate-limit` reads the real client IP from `X-Forwarded-For` and applies the per-IP limit (`RATE_LIMIT_PER_MIN`, default 300/min) to POSTs only — GETs are free and don't touch OpenAI. It's generous because a classroom shares one NAT IP; the daily token meter is the real spend cap. Without trust-proxy, all requests would have looked like one IP and the limit would have been service-wide. Both are valid abuse postures; we chose per-IP. If you want service-wide instead, remove the `trust proxy` line.

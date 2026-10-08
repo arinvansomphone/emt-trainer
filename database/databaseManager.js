@@ -6,7 +6,9 @@ let dbInstance = null;
 
 function getDb(filename) {
   if (dbInstance) return dbInstance;
-  const file = filename ?? path.join(__dirname, 'emt.db');
+  // DB_PATH points at a persistent disk in production; the default lives in the repo for local dev.
+  const file = filename ?? process.env.DB_PATH ?? path.join(__dirname, 'emt.db');
+  if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new Database(file);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');

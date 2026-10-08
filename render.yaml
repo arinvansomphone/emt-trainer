@@ -2,13 +2,19 @@ services:
   - type: web
     name: emt-trainer
     runtime: node
-    plan: free
+    plan: starter
     region: oregon
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
+    disk:
+      name: emt-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DB_PATH
+        value: /var/data/emt.db
       - key: OPENAI_API_KEY
         sync: false
       - key: SERVICE_DISABLED
