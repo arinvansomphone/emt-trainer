@@ -39,7 +39,13 @@ export default function SelectionScreen() {
     <div className="mt-6">
       <h1 className="text-2xl font-semibold tracking-tight">Choose a scenario</h1>
       <p className="text-sm text-muted-foreground mb-1">Pick a category, then a subtype to begin.</p>
-      <p className="text-xs text-muted-foreground mb-4">First click after a quiet period may take ~30 seconds while the server wakes up — this is normal.</p>
+      <p className="text-xs text-muted-foreground mb-1">First click after a quiet period may take ~30 seconds while the server wakes up — this is normal.</p>
+      <p className="text-sm text-muted-foreground mb-1">
+        Please submit feedback through <a href="https://docs.google.com/forms/d/e/1FAIpQLSdmGUrw9d3C9FuNSwA0PKg75CaJ3uZyNJZctTmXgRLh-JmVWA/viewform?usp=dialog" target="_blank" rel="noreferrer" className="underline">this form</a>!
+      </p>
+      <p className="text-sm text-muted-foreground mb-4">
+        Questions or concerns? Email <a href="mailto:arinv@stanford.edu" className="underline">arinv@stanford.edu</a>.
+      </p>
       <Tabs defaultValue="trauma">
         <TabsList>
           <TabsTrigger value="trauma">Trauma</TabsTrigger>
