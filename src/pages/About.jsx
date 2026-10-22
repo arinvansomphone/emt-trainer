@@ -16,6 +16,9 @@ export default function About() {
             and the moderator narrates findings drawn from a per-scenario findings map. Vitals shift in response to interventions.
             When you're done, an AI grader scores your run against an NREMT-style patient assessment rubric.
           </p>
+          <p>
+            When you join a class or open an assignment, your name, email, scores, and transcript are shared with your teacher. Free practice is not shared with any teacher.
+          </p>
           <Separator />
           <div>
             <div className="text-foreground font-medium mb-1">How to talk to the simulator</div>

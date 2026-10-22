@@ -10,6 +10,9 @@ export default function Disclaimer() {
       <p>
         Conversations are processed by OpenAI. Do not enter real patient information or other personal data.
       </p>
+      <p>
+        Class runs share your name, email, scores, and transcript with your teacher; free practice does not.
+      </p>
       {FEEDBACK_URL && (
         <p>
           Found a bad scenario or an unfair grade?{' '}
