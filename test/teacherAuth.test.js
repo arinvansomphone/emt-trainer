@@ -68,9 +68,12 @@ exports.tests = [
     fn: async () => {
       const a = setup({ sub: 'g1', email: 'a@school.edu', name: 'A', email_verified: true });
       const t = await a.signup({ email: 'a@school.edu', name: 'A', password: 'password1' });
+      const old = a.createSession(t.id);
       const g = await a.googleLogin('cred');
       assert.strictEqual(g.id, t.id);
       assert.strictEqual(g.google_sub, 'g1');
+      await rejects(a.login({ email: 'a@school.edu', password: 'password1' }), 401);
+      assert.strictEqual(a.getTeacherForToken(old), null);
       assert.strictEqual((await a.googleLogin('cred')).id, t.id);
     },
   },
@@ -84,13 +87,13 @@ exports.tests = [
     },
   },
   {
-    name: 'teacherAuth: signup after Google-only account sets a password on the same teacher',
+    name: 'teacherAuth: signup on a Google-only account is refused with 409',
     fn: async () => {
       const a = setup({ sub: 'g3', email: 'a@school.edu', name: 'A', email_verified: true });
-      const g = await a.googleLogin('cred');
-      const t = await a.signup({ email: 'a@school.edu', name: 'A', password: 'password1' });
-      assert.strictEqual(t.id, g.id);
-      assert.strictEqual((await a.login({ email: 'a@school.edu', password: 'password1' })).id, g.id);
+      await a.googleLogin('cred');
+      const e = await rejects(a.signup({ email: 'a@school.edu', name: 'A', password: 'password1' }), 409);
+      assert.strictEqual(e.message, 'This email uses Google sign-in. Sign in with Google.');
+      await rejects(a.login({ email: 'a@school.edu', password: 'password1' }), 401);
     },
   },
   {

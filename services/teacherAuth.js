@@ -55,11 +55,10 @@ function makeTeacherAuth({ googleVerifier = defaultGoogleVerifier } = {}) {
     if (existing && existing.password_hash) {
       throw httpError(409, 'An account with that email already exists.');
     }
-    const hash = await bcrypt.hash(password, 10);
     if (existing) {
-      repo.setTeacherPassword(existing.id, hash);
-      return repo.getTeacherById(existing.id);
+      throw httpError(409, 'This email uses Google sign-in. Sign in with Google.');
     }
+    const hash = await bcrypt.hash(password, 10);
     return repo.createTeacher({
       email: normalized,
       name: (name || '').trim() || normalized,
@@ -88,6 +87,11 @@ function makeTeacherAuth({ googleVerifier = defaultGoogleVerifier } = {}) {
     if (bySub) return bySub;
     const byEmail = repo.getTeacherByEmail(payload.email);
     if (byEmail) {
+      if (!byEmail.google_sub) {
+        // Linking: drop any password and sessions set up before ownership of the email was proven.
+        repo.setTeacherPassword(byEmail.id, null);
+        getDb().prepare('DELETE FROM teacher_sessions WHERE teacher_id = ?').run(byEmail.id);
+      }
       repo.setTeacherGoogleSub(byEmail.id, payload.sub);
       return repo.getTeacherById(byEmail.id);
     }
