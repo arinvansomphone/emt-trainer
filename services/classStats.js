@@ -27,12 +27,16 @@ function parseRun(run) {
     rubric: [],
   };
   const grade = state && state.grade;
-  if (grade && typeof grade === 'object' && grade.overall && isNum(grade.overall.score) && Array.isArray(grade.rubric)) {
-    out.graded = true;
-    out.score = grade.overall.score;
-    out.rubric = grade.rubric.filter(
+  if (grade && typeof grade === 'object' && Array.isArray(grade.rubric)) {
+    const rows = grade.rubric.filter(
       (r) => r && typeof r === 'object' && typeof r.criterion === 'string' && r.criterion && isNum(r.score)
     );
+    if (rows.length > 0) {
+      out.graded = true;
+      out.rubric = rows;
+      // Audited rubric percent; the grader's overall.score is never trusted (it is not adjusted by the audit).
+      out.score = Math.round((rows.reduce((a, r) => a + r.score, 0) / (rows.length * 3)) * 100);
+    }
   }
   return out;
 }
@@ -100,6 +104,13 @@ function computeClassOverview({ runs = [], students = [], assignments = [] } = {
       else missing.push(s.id);
     }
     const hasDue = isNum(a.due_at);
+    // Late = graded on this assignment but never on time (any on-time graded run clears the student).
+    const lateStudents = hasDue
+      ? students.filter((s) => {
+          const mine = graded.filter((x) => x.run.assignment_id === a.id && x.run.student_id === s.id);
+          return mine.length > 0 && !mine.some((x) => x.run.created_at <= a.due_at);
+        }).length
+      : 0;
     return {
       id: a.id,
       title: a.title,
@@ -107,7 +118,7 @@ function computeClassOverview({ runs = [], students = [], assignments = [] } = {
       subtype: a.subtype,
       dueAt: hasDue ? a.due_at : null,
       done: done.length,
-      late: hasDue ? done.filter((x) => x.run.created_at > a.due_at).length : 0,
+      late: lateStudents,
       avg: avgInt(done.map((x) => x.p.score)),
       missing,
     };

@@ -107,6 +107,7 @@ exports.tests = [
       const res = await request(createApp()).get('/api/teacher/me');
       assert.strictEqual(res.headers['cross-origin-opener-policy'], 'same-origin-allow-popups');
       assert.ok(res.headers['content-security-policy'].includes('accounts.google.com'));
+      assert.strictEqual(res.headers['referrer-policy'], 'strict-origin-when-cross-origin');
     },
   },
 ];
@@ -136,7 +137,7 @@ function seedRun(classId, studentId, { assignmentId = null, grade = null } = {})
 
 const sampleGrade = {
   overall: { score: 80, summary: 'ok' },
-  rubric: [{ criterion: 'Scene size-up', score: 80, maxScore: 100 }],
+  rubric: [{ criterion: 'Scene size-up', score: 2, maxScore: 3 }],
   strengths: [], improvements: [],
 };
 
@@ -210,7 +211,7 @@ exports.tests.push(
       assert.strictEqual(res.body.grade.overall.score, 80);
       assert.strictEqual(res.body.scenario.grade, undefined);
       assert.strictEqual(res.body.scenario.subtype, 'Cardiac');
-      assert.strictEqual(res.body.run.score, 80);
+      assert.strictEqual(res.body.run.score, 67);
     },
   },
   {
