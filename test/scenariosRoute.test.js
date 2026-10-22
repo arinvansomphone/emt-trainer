@@ -162,6 +162,8 @@ const classTests = [
         { studentName: 'Ann' },
         { studentName: 'Ann', studentEmail: 'nope' },
         { studentName: '   ', studentEmail: 'a@b.com' },
+        { studentName: 'x'.repeat(101), studentEmail: 'a@b.com' },
+        { studentName: 'Ann', studentEmail: 'a'.repeat(250) + '@b.com' },
       ]) {
         const res = await request(appWithGen(throwingGen)).post('/api/scenarios')
           .send({ type: 'trauma', subtype: 'MVC', classCode: c.code, ...body });

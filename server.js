@@ -22,6 +22,7 @@ function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard,
   const google = 'https://accounts.google.com';
   app.use(helmet({
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     contentSecurityPolicy: {
       directives: {
         ...cspDefaults,

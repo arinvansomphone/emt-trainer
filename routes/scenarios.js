@@ -59,7 +59,7 @@ function createScenarioRouter(scenarioGenerator, tokenGuard) {
       }
       const name = typeof body.studentName === 'string' ? body.studentName.trim() : '';
       const email = typeof body.studentEmail === 'string' ? body.studentEmail.trim() : '';
-      if (!name || !email.includes('@')) return res.status(400).json({ error: NEED_STUDENT });
+      if (!name || name.length > 100 || email.length > 254 || !email.includes('@')) return res.status(400).json({ error: NEED_STUDENT });
       student = { name, email, cls };
     }
     if (!isValid(type, subtype)) {

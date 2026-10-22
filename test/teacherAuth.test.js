@@ -93,7 +93,16 @@ exports.tests = [
       await a.googleLogin('cred');
       const e = await rejects(a.signup({ email: 'a@school.edu', name: 'A', password: 'password1' }), 409);
       assert.strictEqual(e.message, 'This email uses Google sign-in. Sign in with Google.');
-      await rejects(a.login({ email: 'a@school.edu', password: 'password1' }), 401);
+      const l = await rejects(a.login({ email: 'a@school.edu', password: 'password1' }), 401);
+      assert.strictEqual(l.message, 'This account uses Google sign-in.');
+    },
+  },
+  {
+    name: 'teacherAuth: signup with a non-string name falls back to the email',
+    fn: async () => {
+      const a = setup();
+      const t = await a.signup({ email: 'n@school.edu', name: 123, password: 'password1' });
+      assert.strictEqual(t.name, 'n@school.edu');
     },
   },
   {

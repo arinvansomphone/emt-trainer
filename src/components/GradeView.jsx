@@ -51,7 +51,7 @@ export default function GradeView({ grade }) {
         </CardContent>
       </Card>
 
-      {(grade.strengths?.length || grade.improvements?.length) && (
+      {(grade.strengths?.length > 0 || grade.improvements?.length > 0) && (
         <div className="grid sm:grid-cols-2 gap-4">
           {grade.strengths?.length > 0 && (
             <Card>

@@ -61,7 +61,7 @@ function makeTeacherAuth({ googleVerifier = defaultGoogleVerifier } = {}) {
     const hash = await bcrypt.hash(password, 10);
     return repo.createTeacher({
       email: normalized,
-      name: (name || '').trim() || normalized,
+      name: (typeof name === 'string' ? name.trim() : '') || normalized,
       passwordHash: hash,
     });
   }
@@ -69,6 +69,9 @@ function makeTeacherAuth({ googleVerifier = defaultGoogleVerifier } = {}) {
   async function login({ email, password }) {
     const bad = () => httpError(401, 'Email or password is incorrect.');
     const teacher = repo.getTeacherByEmail(repo.normalizeEmail(email || ''));
+    if (teacher && teacher.google_sub && !teacher.password_hash) {
+      throw httpError(401, 'This account uses Google sign-in.');
+    }
     if (!teacher || !teacher.password_hash || typeof password !== 'string') throw bad();
     if (!(await bcrypt.compare(password, teacher.password_hash))) throw bad();
     return teacher;

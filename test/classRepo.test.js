@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS summaries (
       } finally {
         resetForTests();
         for (const suffix of ['', '-wal', '-shm']) {
-          try { fs.unlinkSync(file + suffix); } catch {}
+          try { fs.unlinkSync(file + suffix); } catch { /* temp file may already be gone */ }
         }
       }
     },
