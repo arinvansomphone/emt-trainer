@@ -1,4 +1,5 @@
 const sm = require('./sessionManager');
+const { httpError } = require('./httpError');
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 
@@ -23,13 +24,6 @@ function applyVitals(sessionId, partial) {
   const state = JSON.parse(row.state);
   state.currentVitals = { ...(state.currentVitals || state.patientProfile?.vitals || {}), ...partial };
   sm.setScenario(sessionId, row.scenario_type, JSON.stringify(state));
-}
-
-function httpError(status, message) {
-  const err = new Error(message);
-  err.status = status;
-  err.expose = true;
-  return err;
 }
 
 function makeChatService({ openai, model = DEFAULT_MODEL, summarizer = null, tokenMeter = null }) {
