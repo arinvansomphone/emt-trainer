@@ -111,7 +111,7 @@ function createTeacherRouter({ teacherAuth }) {
     const c = repo.getClassForTeacher(req.params.id, req.teacher.id);
     if (!c) return res.status(404).json(NOT_FOUND);
     const { type, subtype, title, dueAt } = req.body || {};
-    if (!isValid(type, subtype)) return res.status(400).json({ error: 'invalid type or subtype' });
+    if (typeof type !== 'string' || typeof subtype !== 'string' || !isValid(type, subtype)) return res.status(400).json({ error: 'invalid type or subtype' });
     let due = null;
     if (dueAt !== undefined && dueAt !== null && String(dueAt).trim() !== '') {
       due = Date.parse(String(dueAt));

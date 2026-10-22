@@ -272,3 +272,18 @@ exports.tests.push(
     },
   },
 );
+
+exports.tests.push({
+  name: 'non-string assignment type or subtype returns 400, not 500',
+  fn: async () => {
+    setup();
+    const a = await signedIn(createApp(), 'a@x.edu');
+    const cls = (await a.agent.post('/api/teacher/classes').send({ name: 'P1' })).body;
+    const url = `/api/teacher/classes/${cls.id}/assignments`;
+    for (const body of [{ type: ['medical'], subtype: 'Cardiac' }, { type: 'medical', subtype: ['Cardiac'] }]) {
+      const res = await a.agent.post(url).send(body);
+      assert.strictEqual(res.status, 400);
+      assert.strictEqual(res.body.error, 'invalid type or subtype');
+    }
+  },
+});
