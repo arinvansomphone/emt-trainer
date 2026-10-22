@@ -32,6 +32,7 @@ export default function JoinClass() {
         body: { type, subtype, classCode: cls.code, studentName: student.name, studentEmail: student.email },
       });
       sessionStorage.setItem(`scenario:${data.sessionId}`, JSON.stringify(data.scenario));
+      sessionStorage.setItem(`classRun:${data.sessionId}`, JSON.stringify(data.classRun ?? null));
       navigate(`/session/${data.sessionId}`);
     } catch (e) {
       setError(e.message);

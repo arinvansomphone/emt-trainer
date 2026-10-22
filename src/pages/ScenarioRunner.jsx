@@ -20,7 +20,7 @@ export default function ScenarioRunner() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [classRun, setClassRun] = useState(null);
+  const [classRun, setClassRun] = useState(undefined);
   const [grading, setGrading] = useState(false);
   const [error, setError] = useState(null);
   const bottomRef = useRef(null);
@@ -44,6 +44,11 @@ export default function ScenarioRunner() {
   }
 
   useEffect(() => {
+    setClassRun(undefined);
+    try {
+      const cr = sessionStorage.getItem(`classRun:${id}`);
+      if (cr !== null) setClassRun(JSON.parse(cr));
+    } catch { /* ignore */ }
     const cached = sessionStorage.getItem(`scenario:${id}`);
     if (cached) {
       const s = JSON.parse(cached);
@@ -88,6 +93,10 @@ export default function ScenarioRunner() {
 
   async function restart() {
     if (!scenario) return;
+    if (classRun === undefined) {
+      setError('Still loading class details. Try again in a moment.');
+      return;
+    }
     if (!confirm('Restart with a fresh scenario of the same subtype?')) return;
     try {
       let body = { type: scenario.type, subtype: scenario.subtype };
@@ -105,6 +114,7 @@ export default function ScenarioRunner() {
       }
       const data = await apiFetch('/api/scenarios', { body });
       sessionStorage.setItem(`scenario:${data.sessionId}`, JSON.stringify(data.scenario));
+      sessionStorage.setItem(`classRun:${data.sessionId}`, JSON.stringify(data.classRun ?? null));
       navigate(`/session/${data.sessionId}`);
     } catch (err) {
       setError(err.message);

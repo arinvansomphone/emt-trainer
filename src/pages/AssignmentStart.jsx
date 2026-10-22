@@ -29,6 +29,7 @@ export default function AssignmentStart() {
         body: { assignmentId: assignment.id, studentName: student.name, studentEmail: student.email },
       });
       sessionStorage.setItem(`scenario:${data.sessionId}`, JSON.stringify(data.scenario));
+      sessionStorage.setItem(`classRun:${data.sessionId}`, JSON.stringify(data.classRun ?? null));
       navigate(`/session/${data.sessionId}`);
     } catch (e) {
       setError(e.status === 404 ? GONE : e.message);

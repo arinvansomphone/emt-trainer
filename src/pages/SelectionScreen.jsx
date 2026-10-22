@@ -29,6 +29,7 @@ export default function SelectionScreen() {
     try {
       const data = await apiFetch('/api/scenarios', { body: { type, subtype } });
       sessionStorage.setItem(`scenario:${data.sessionId}`, JSON.stringify(data.scenario));
+      sessionStorage.setItem(`classRun:${data.sessionId}`, JSON.stringify(data.classRun ?? null));
       navigate(`/session/${data.sessionId}`);
     } catch (e) {
       setError(e.message);

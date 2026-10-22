@@ -10,12 +10,13 @@ import { apiFetch } from '@/lib/api';
 export default function FeedbackDisplay() {
   const { id } = useParams();
   const [grade, setGrade] = useState(null);
-  const [classRun, setClassRun] = useState(null);
+  const [classRun, setClassRun] = useState(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const cached = sessionStorage.getItem(`grade:${id}`);
-    if (cached) setGrade(JSON.parse(cached));
+    setClassRun(undefined);
+    if (cached) { setGrade(JSON.parse(cached)); setLoading(false); }
     // New tab, refresh, or shared link: the grade is stored on the session server-side.
     apiFetch(`/api/sessions/${id}`)
       .then((data) => {
