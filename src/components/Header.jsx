@@ -1,7 +1,8 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTeacher } from '@/lib/useTeacher';
 
 function StarOfLife({ className }) {
   return (
@@ -13,11 +14,11 @@ function StarOfLife({ className }) {
   );
 }
 
-function NavItem({ to, children }) {
+function NavItem({ to, end = true, children }) {
   return (
     <NavLink
       to={to}
-      end
+      end={end}
       className={({ isActive }) => cn('text-sm transition-colors',
         isActive ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground')}
     >
@@ -27,16 +28,30 @@ function NavItem({ to, children }) {
 }
 
 export default function Header() {
+  const { teacher, logout } = useTeacher();
+  const navigate = useNavigate();
+
+  async function signOut() {
+    await logout();
+    navigate('/teacher');
+  }
+
   return (
     <>
-      <header className="flex items-center justify-between py-4 gap-4">
+      <header className="flex flex-wrap items-center justify-between py-4 gap-x-4 gap-y-2">
         <Link to="/" className="flex items-center gap-3">
           <StarOfLife className="h-5 w-5 text-primary" />
           <span className="text-lg font-semibold tracking-tight">EMT Scenario Trainer</span>
         </Link>
-        <nav className="flex items-center gap-3">
+        <nav className="flex flex-wrap items-center gap-3">
           <NavItem to="/">Scenarios</NavItem>
           <NavItem to="/about">About</NavItem>
+          <NavItem to="/teacher" end={false}>Teachers</NavItem>
+          {teacher && (
+            <button type="button" onClick={signOut} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Sign out
+            </button>
+          )}
           <ThemeToggle />
         </nav>
       </header>

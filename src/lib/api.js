@@ -11,15 +11,16 @@ const STATUS_MESSAGES = {
 // Server-written messages for these statuses are already user-facing.
 const USE_SERVER_MESSAGE = new Set([400, 429, 503]);
 
-async function errorMessage(res) {
+async function errorMessage(res, serverMessage) {
   let serverMsg = null;
   try { serverMsg = (await res.json())?.error; } catch { /* non-JSON body */ }
-  if (serverMsg && USE_SERVER_MESSAGE.has(res.status)) return serverMsg;
+  if (serverMsg && (serverMessage || USE_SERVER_MESSAGE.has(res.status))) return serverMsg;
   return STATUS_MESSAGES[res.status]
     ?? (res.status === 503 ? STATUS_MESSAGES[502] : `Unexpected error (${res.status}). Please try again.`);
 }
 
-export async function apiFetch(url, { body, method = body ? 'POST' : 'GET' } = {}) {
+// serverMessage: show the server's `error` text for any status (e.g. sign-in 401/409).
+export async function apiFetch(url, { body, method = body ? 'POST' : 'GET', serverMessage = false } = {}) {
   let res;
   try {
     res = await fetch(url, {
@@ -32,7 +33,7 @@ export async function apiFetch(url, { body, method = body ? 'POST' : 'GET' } = {
     throw new Error("Can't reach the trainer. Check your connection and try again.");
   }
   if (!res.ok) {
-    const err = new Error(await errorMessage(res));
+    const err = new Error(await errorMessage(res, serverMessage));
     err.status = res.status;
     throw err;
   }
