@@ -2,6 +2,11 @@ const express = require('express');
 const { CATALOG, isValid } = require('../services/scenarioTypes');
 const sm = require('../services/sessionManager');
 const { aiErrorResponse } = require('../services/aiErrors');
+const classRepo = require('../services/classRepo');
+
+const GONE_ASSIGNMENT = 'This assignment no longer exists. Ask your teacher for a new link.';
+const BAD_CODE = "We couldn't find that class code. Check it with your teacher.";
+const NEED_STUDENT = 'Enter your name and email.';
 
 function createScenarioRouter(scenarioGenerator, tokenGuard) {
   const router = express.Router();
@@ -9,8 +14,54 @@ function createScenarioRouter(scenarioGenerator, tokenGuard) {
 
   router.get('/scenario-types', (_req, res) => res.json(CATALOG));
 
+  router.get('/assignments/:id', (req, res) => {
+    const a = classRepo.getAssignment(req.params.id);
+    if (!a) return res.status(404).json({ error: GONE_ASSIGNMENT });
+    res.json({
+      id: a.id,
+      title: a.title,
+      type: a.type,
+      subtype: a.subtype,
+      dueAt: a.due_at ?? null,
+      className: a.class_name,
+    });
+  });
+
+  router.get('/classes/:code', (req, res) => {
+    const c = classRepo.getClassByCode(req.params.code);
+    if (!c) return res.status(404).json({ error: BAD_CODE });
+    res.json({ name: c.name, code: classRepo.formatCode(c.code) });
+  });
+
   router.post('/scenarios', guard, async (req, res) => {
-    const { type, subtype } = req.body || {};
+    const body = req.body || {};
+    let { type, subtype } = body;
+    const hasAssignment = body.assignmentId != null && body.assignmentId !== '';
+    const hasCode = body.classCode != null && body.classCode !== '';
+    let classId = null;
+    let assignmentId = null;
+    let student = null;
+    if (hasAssignment || hasCode) {
+      let cls;
+      if (hasAssignment) {
+        const a = classRepo.getAssignment(String(body.assignmentId));
+        if (!a) return res.status(404).json({ error: GONE_ASSIGNMENT });
+        type = a.type;
+        subtype = a.subtype;
+        classId = a.class_id;
+        assignmentId = a.id;
+        cls = { name: a.class_name, code: a.class_code };
+      } else {
+        const c = classRepo.getClassByCode(body.classCode);
+        if (!c) return res.status(400).json({ error: BAD_CODE });
+        classId = c.id;
+        cls = c;
+      }
+      const name = typeof body.studentName === 'string' ? body.studentName.trim() : '';
+      const email = typeof body.studentEmail === 'string' ? body.studentEmail.trim() : '';
+      if (!name || !email.includes('@')) return res.status(400).json({ error: NEED_STUDENT });
+      student = { name, email, cls };
+    }
     if (!isValid(type, subtype)) {
       return res.status(400).json({ error: 'invalid type or subtype' });
     }
@@ -48,7 +99,17 @@ function createScenarioRouter(scenarioGenerator, tokenGuard) {
         `Scenario JSON:\n${JSON.stringify(scenario)}`,
       ].join('\n');
       sm.appendMessage(sessionId, 'system', systemMsg);
-      res.json({ sessionId, scenario });
+      let classRun = null;
+      if (student) {
+        const st = classRepo.upsertStudent(classId, student.name, student.email);
+        classRepo.recordClassRun({ sessionId, classId, studentId: st.id, assignmentId });
+        classRun = {
+          className: student.cls.name,
+          classCode: classRepo.formatCode(student.cls.code),
+          assignmentId,
+        };
+      }
+      res.json({ sessionId, scenario, classRun });
     } catch (err) {
       console.error('[scenarios] error:', err);
       const ai = aiErrorResponse(err);

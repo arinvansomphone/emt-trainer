@@ -3,6 +3,7 @@ const request = require('supertest');
 const { resetForTests, getDb } = require('../database/databaseManager');
 const { createApp } = require('../server');
 const sm = require('../services/sessionManager');
+const repo = require('../services/classRepo');
 
 function setup() { resetForTests(); getDb(':memory:'); }
 
@@ -45,3 +46,25 @@ exports.tests = [
     },
   },
 ];
+
+exports.tests.push({
+  name: 'GET /api/sessions/:id includes classRun without student identity',
+  fn: async () => {
+    setup();
+    const t = repo.createTeacher({ email: 't@x.com', name: 'T', passwordHash: 'h' });
+    const c = repo.createClass(t.id, 'Period 1');
+    const st = repo.upsertStudent(c.id, 'Zelda Quux', 'zelda@quux.com');
+    const sid = sm.createSession();
+    sm.setScenario(sid, 'trauma', JSON.stringify({ type: 'trauma', subtype: 'MVC', patientProfile: { vitals: {} } }));
+    repo.recordClassRun({ sessionId: sid, classId: c.id, studentId: st.id });
+    const res = await request(createApp({})).get(`/api/sessions/${sid}`);
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body.classRun, { className: 'Period 1', classCode: repo.formatCode(c.code), assignmentId: null });
+    const text = JSON.stringify(res.body);
+    assert.ok(!text.includes('Zelda') && !text.includes('quux.com') && !text.includes(st.id));
+    const free = sm.createSession();
+    sm.setScenario(free, 'trauma', JSON.stringify({ type: 'trauma', subtype: 'MVC' }));
+    const r2 = await request(createApp({})).get(`/api/sessions/${free}`);
+    assert.strictEqual(r2.body.classRun, null);
+  },
+});

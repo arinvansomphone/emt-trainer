@@ -1,5 +1,6 @@
 const express = require('express');
 const sm = require('../services/sessionManager');
+const classRepo = require('../services/classRepo');
 const { aiErrorResponse } = require('../services/aiErrors');
 
 function createSessionsRouter({ gradingService, tokenGuard } = {}) {
@@ -11,6 +12,7 @@ function createSessionsRouter({ gradingService, tokenGuard } = {}) {
     if (!row) return res.status(404).json({ error: 'not found' });
     const state = row.state ? JSON.parse(row.state) : null;
     const messages = sm.getHistory(req.params.id).filter((m) => m.role !== 'system');
+    const run = classRepo.getClassRun(row.id);
     res.json({
       sessionId: row.id,
       scenarioType: row.scenario_type,
@@ -19,6 +21,9 @@ function createSessionsRouter({ gradingService, tokenGuard } = {}) {
       bystanders: state?.bystanders ?? [],
       grade: state?.grade ?? null,
       messages,
+      classRun: run
+        ? { className: run.class_name, classCode: classRepo.formatCode(run.class_code), assignmentId: run.assignment_id ?? null }
+        : null,
     });
   });
 
