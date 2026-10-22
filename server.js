@@ -8,14 +8,30 @@ const rateLimit = require('express-rate-limit');
 const { createChatRouter } = require('./routes/chat');
 const { createScenarioRouter } = require('./routes/scenarios');
 const { createSessionsRouter } = require('./routes/sessions');
+const { createTeacherRouter } = require('./routes/teacher');
+const { makeTeacherAuth } = require('./services/teacherAuth');
 const { killSwitch, makeTokenMeter } = require('./services/abuseGuards');
 
-function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard } = {}) {
+function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard, teacherAuth = makeTeacherAuth() } = {}) {
   const app = express();
   // Render terminates TLS at its proxy; trust one hop so express-rate-limit
   // and req.ip read the real client IP from X-Forwarded-For.
   app.set('trust proxy', 1);
-  app.use(helmet());
+  // Google Identity Services needs its popup, script, iframe and style origins.
+  const cspDefaults = helmet.contentSecurityPolicy.getDefaultDirectives();
+  const google = 'https://accounts.google.com';
+  app.use(helmet({
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    contentSecurityPolicy: {
+      directives: {
+        ...cspDefaults,
+        'script-src': [...cspDefaults['script-src'], google],
+        'frame-src': ["'self'", google],
+        'connect-src': [...(cspDefaults['connect-src'] || ["'self'"]), google],
+        'style-src': [...cspDefaults['style-src'], `${google}/gsi/style`],
+      },
+    },
+  }));
   app.use(cors());
   app.use(express.json({ limit: '1mb' }));
   // Only POSTs hit OpenAI. Classrooms share one NAT IP, so keep this generous;
@@ -29,6 +45,16 @@ function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard 
     legacyHeaders: false,
   }));
   app.use('/api/', killSwitch);
+  // Built per app so each instance (and test) has its own counters.
+  const authLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    message: { error: 'Too many sign-in attempts. Please wait a minute and try again.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use(['/api/teacher/login', '/api/teacher/signup', '/api/teacher/google'], authLimiter);
+  app.use('/api/teacher', createTeacherRouter({ teacherAuth }));
   app.use('/api/chat', createChatRouter(chatService, tokenGuard));
   app.use('/api', createScenarioRouter(scenarioGenerator, tokenGuard));
   app.use('/api/sessions', createSessionsRouter({ gradingService, tokenGuard }));
