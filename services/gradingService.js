@@ -1,4 +1,5 @@
 const sm = require('./sessionManager');
+const { GRADING_SCOPE_RULE } = require('./emtScope');
 
 const DEFAULT_MODEL = 'gpt-4o';
 
@@ -51,6 +52,8 @@ EVIDENCE RULES:
    • Appropriate interventions — match interventions to the chief complaint. Correct + complete = 3; correct but incomplete = 1-2; wrong or absent = 0.
    • Transport decision and reassessment — both stated transport decision AND at least one reassessment. Either alone = 1-2.
    • C-spine consideration — manual stabilization or c-collar applied/verbalized when MOI warrants.
+
+5. ${GRADING_SCOPE_RULE}
 
 OUTPUT: STRICT JSON in this shape:
 {

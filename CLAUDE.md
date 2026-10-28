@@ -16,7 +16,7 @@ A faithful rebuild of [arinvansomphone/emt-scenario-trainer](https://github.com/
 cp .env.example .env       # add OPENAI_API_KEY
 npm install
 npm run dev:all            # backend :3001, frontend :5173
-npm test                   # 116 tests
+npm test                   # 124 tests
 ```
 
 Note: backend listens on `:3001` (not 3000) to avoid clashing with another local Next.js dev server.
@@ -47,6 +47,7 @@ services/
   abuseGuards.js              # SERVICE_DISABLED kill switch + in-memory daily token meter (default 1.5M tokens/day)
   aiErrors.js                 # maps OpenAI failures (quota, 429, 5xx, network) to 503 + readable message
   gradingService.js           # OpenAI → JSON rubric scoring; verbatim-quote audit zeroes unsupported scores; returns stored grade on repeat calls
+  emtScope.js                 # California EMT-B scope of practice: moderator refuses ALS skills; grading caps out-of-scope interventions
 src/
   components/Header.jsx       # top bar (shadcn Badge + Separator)
   components/ChatBubbles.jsx  # renders patient / bystander / moderator segments

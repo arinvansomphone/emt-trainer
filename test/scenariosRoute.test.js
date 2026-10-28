@@ -53,6 +53,19 @@ exports.tests = [
     },
   },
   {
+    // gpt-4o-mini fell back to the "reply exactly" vitals line on greetings, then looped on it.
+    name: 'system prompt limits the vitals clarifying question to explicit vitals requests',
+    fn: async () => {
+      setup();
+      const app = createApp({ chatService: fakeChatService(), scenarioGenerator: fakeScenarioGen() });
+      const res = await request(app).post('/api/scenarios').send({ type: 'trauma', subtype: 'MVC' });
+      const prompt = sm.getHistory(res.body.sessionId)[0].content;
+      assert.ok(prompt.includes('Which vitals are you obtaining?'));
+      assert.ok(!prompt.includes('reply exactly'));
+      assert.ok(prompt.includes('Greetings, introductions, and anything else said to the patient are NOT vitals requests'));
+    },
+  },
+  {
     name: 'POST /api/scenarios rejects invalid subtype',
     fn: async () => {
       setup();
