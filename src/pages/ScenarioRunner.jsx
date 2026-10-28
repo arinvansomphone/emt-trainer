@@ -9,6 +9,8 @@ import { Loader2, Mic, MicOff, RotateCcw, Square } from 'lucide-react';
 import { AssistantMessage, UserMessage } from '@/components/ChatBubbles';
 import { useSpeechRecognition } from '@/lib/useSpeech';
 import { apiFetch } from '@/lib/api';
+import { getStudent, normalizeCode } from '@/lib/student';
+import RunBadge from '@/components/RunBadge';
 
 export default function ScenarioRunner() {
   const { id } = useParams();
@@ -18,6 +20,7 @@ export default function ScenarioRunner() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [classRun, setClassRun] = useState(undefined);
   const [grading, setGrading] = useState(false);
   const [error, setError] = useState(null);
   const bottomRef = useRef(null);
@@ -32,9 +35,8 @@ export default function ScenarioRunner() {
 
   async function refreshState() {
     try {
-      const r = await fetch(`/api/sessions/${id}`);
-      if (!r.ok) return;
-      const data = await r.json();
+      const data = await apiFetch(`/api/sessions/${id}`);
+      setClassRun(data.classRun || null);
       setScenario(data.scenario);
       setBystanders(data.bystanders || []);
       if (Array.isArray(data.messages)) setMessages(data.messages);
@@ -42,6 +44,11 @@ export default function ScenarioRunner() {
   }
 
   useEffect(() => {
+    setClassRun(undefined);
+    try {
+      const cr = sessionStorage.getItem(`classRun:${id}`);
+      if (cr !== null) setClassRun(JSON.parse(cr));
+    } catch { /* ignore */ }
     const cached = sessionStorage.getItem(`scenario:${id}`);
     if (cached) {
       const s = JSON.parse(cached);
@@ -86,10 +93,28 @@ export default function ScenarioRunner() {
 
   async function restart() {
     if (!scenario) return;
+    if (classRun === undefined) {
+      setError('Still loading class details. Try again in a moment.');
+      return;
+    }
     if (!confirm('Restart with a fresh scenario of the same subtype?')) return;
     try {
-      const data = await apiFetch('/api/scenarios', { body: { type: scenario.type, subtype: scenario.subtype } });
+      let body = { type: scenario.type, subtype: scenario.subtype };
+      if (classRun) {
+        const student = getStudent();
+        if (!student) {
+          navigate(classRun.assignmentId ? `/a/${classRun.assignmentId}` : `/join/${normalizeCode(classRun.classCode)}`);
+          return;
+        }
+        body = {
+          ...(classRun.assignmentId ? { assignmentId: classRun.assignmentId } : { ...body, classCode: classRun.classCode }),
+          studentName: student.name,
+          studentEmail: student.email,
+        };
+      }
+      const data = await apiFetch('/api/scenarios', { body });
       sessionStorage.setItem(`scenario:${data.sessionId}`, JSON.stringify(data.scenario));
+      sessionStorage.setItem(`classRun:${data.sessionId}`, JSON.stringify(data.classRun ?? null));
       navigate(`/session/${data.sessionId}`);
     } catch (err) {
       setError(err.message);
@@ -113,7 +138,10 @@ export default function ScenarioRunner() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-base">
             <span>Dispatch</span>
-            <Badge variant="secondary">{scenario.type} · {scenario.subtype}</Badge>
+            <span className="flex items-center gap-2">
+              <RunBadge classRun={classRun} />
+              <Badge variant="secondary">{scenario.type} · {scenario.subtype}</Badge>
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -25,3 +25,7 @@ services:
         value: "300"
       - key: VITE_FEEDBACK_URL
         sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false

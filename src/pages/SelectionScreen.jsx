@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import ScenarioGrid from '@/components/ScenarioGrid';
+import { normalizeCode } from '@/lib/student';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 export default function SelectionScreen() {
@@ -11,16 +12,24 @@ export default function SelectionScreen() {
   const [catalog, setCatalog] = useState(null);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
+  const [joinCode, setJoinCode] = useState('');
 
   useEffect(() => {
     apiFetch('/api/scenario-types').then(setCatalog).catch(e => setError(e.message));
   }, []);
+
+  function joinClass(e) {
+    e.preventDefault();
+    const c = normalizeCode(joinCode);
+    if (c) navigate(`/join/${c}`);
+  }
 
   async function start(type, subtype) {
     setBusy(subtype); setError(null);
     try {
       const data = await apiFetch('/api/scenarios', { body: { type, subtype } });
       sessionStorage.setItem(`scenario:${data.sessionId}`, JSON.stringify(data.scenario));
+      sessionStorage.setItem(`classRun:${data.sessionId}`, JSON.stringify(data.classRun ?? null));
       navigate(`/session/${data.sessionId}`);
     } catch (e) {
       setError(e.message);
@@ -46,35 +55,12 @@ export default function SelectionScreen() {
       <p className="text-sm text-muted-foreground mb-4">
         Questions or concerns? Email <a href="mailto:arinv@stanford.edu" className="underline">arinv@stanford.edu</a>.
       </p>
-      <Tabs defaultValue="trauma">
-        <TabsList>
-          <TabsTrigger value="trauma">Trauma</TabsTrigger>
-          <TabsTrigger value="medical">Medical</TabsTrigger>
-        </TabsList>
-        {['trauma','medical'].map((type) => (
-          <TabsContent key={type} value={type}>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-              {catalog[type].map((subtype) => (
-                <Card
-                  key={subtype}
-                  onClick={() => !busy && start(type, subtype)}
-                  className={`cursor-pointer hover:border-primary transition ${busy === subtype ? 'opacity-60' : ''}`}
-                >
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-base">
-                      {subtype}
-                      {busy === subtype && <Loader2 className="h-4 w-4 animate-spin" />}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-muted-foreground capitalize">{type}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+      <p className="text-sm font-medium mb-3">Free practice — not shared with any teacher.</p>
+      <ScenarioGrid catalog={catalog} busy={busy} onPick={start} />
+      <form className="flex gap-2 mt-6 max-w-sm" onSubmit={joinClass}>
+        <Input value={joinCode} onChange={(e) => setJoinCode(e.target.value)} placeholder="Joining a class? Enter code" aria-label="Class code" />
+        <Button type="submit" variant="outline" disabled={!normalizeCode(joinCode)}>Join</Button>
+      </form>
       {error && <p className="text-sm text-destructive mt-3">{error}</p>}
     </div>
   );
