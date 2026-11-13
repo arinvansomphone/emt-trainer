@@ -16,7 +16,7 @@ A faithful rebuild of [arinvansomphone/emt-scenario-trainer](https://github.com/
 cp .env.example .env       # add OPENAI_API_KEY
 npm install
 npm run dev:all            # backend :3001, frontend :5173
-npm test                   # 124 tests
+npm test                   # 163 tests
 ```
 
 Note: backend listens on `:3001` (not 3000) to avoid clashing with another local Next.js dev server.
@@ -33,14 +33,15 @@ routes/
   scenarios.js                # GET /api/scenario-types, GET /api/assignments/:id, GET /api/classes/:code, POST /api/scenarios (optionally tied to a class/assignment)
   sessions.js                 # GET /api/sessions/:id (includes classRun, never student identity), POST /api/sessions/:id/grade
   teacher.js                  # /api/teacher/*: signup/login/google/logout/me + classes, assignments, students, runs (requireTeacher)
+  admin.js                    # /api/admin/*: runs list + detail, stats (requireAdmin; 60 s stats cache)
 services/
   httpError.js                # httpError(status, msg) → exposable error shared by services/routes
   classRepo.js                # teachers, classes (join codes), assignments, students, class_runs persistence
-  teacherAuth.js              # signup/login/Google verify + account linking, 30-day cookie sessions, requireTeacher
+  teacherAuth.js              # signup/login/Google verify + account linking, 30-day cookie sessions, requireTeacher, isAdmin/requireAdmin
   classStats.js               # pure: per-run summary (late), class overview, per-assignment/student stats
   sessionManager.js           # session + message persistence; setScenario, getContext (model view), getHistory (full transcript)
   chatService.js              # orchestrates chat; parses [Vitals: ...] markers; runs summarizer
-  scenarioTypes.js            # static catalog (trauma + medical)
+  scenarioTypes.js            # static catalog (trauma + medical); subtype "Random" picks one uniformly server-side
   templateGenerator.js        # per-subtype clinical hints
   scenarioGenerator.js        # OpenAI → JSON scenario (patient, env, bystanders, physicalFindings)
   conversationSummarizer.js   # rolling summary once model context hits 30 messages; keeps last 8 verbatim
@@ -48,10 +49,12 @@ services/
   aiErrors.js                 # maps OpenAI failures (quota, 429, 5xx, network) to 503 + readable message
   gradingService.js           # OpenAI → JSON rubric scoring; verbatim-quote audit zeroes unsupported scores; returns stored grade on repeat calls
   emtScope.js                 # California EMT-B scope of practice: moderator refuses ALS skills; grading caps out-of-scope interventions
+  adminRepo.js                # read-only SQL over every scenario session (free practice included)
+  adminStats.js               # pure: admin usage stats (windows, daily by IANA zone, per class/scenario, weakest skills)
 src/
   components/Header.jsx       # top bar (shadcn Badge + Separator)
   components/ChatBubbles.jsx  # renders patient / bystander / moderator segments
-  components/Disclaimer.jsx   # footer: educational-use + OpenAI data notice; feedback link if VITE_FEEDBACK_URL set
+  components/Disclaimer.jsx   # footer: educational-use + OpenAI data notice; "site admin" links to /admin for admins; feedback link if VITE_FEEDBACK_URL set
   components/ui/              # shadcn primitives
   pages/SelectionScreen.jsx   # tabs (Trauma/Medical) + subtype card grid
   pages/ScenarioRunner.jsx    # dispatch + patient + env + bystanders + chat + End-and-Grade
@@ -70,7 +73,9 @@ src/
   components/TeacherGate.jsx  # wraps /teacher/* pages; shows sign-in when signed out
   pages/JoinClass.jsx         # /join/:code — enter name/email, then pick a scenario
   pages/AssignmentStart.jsx   # /a/:assignmentId — name/email, then starts the assigned scenario
-  pages/teacher/              # TeacherSignIn, TeacherClasses, ClassOverview, StudentRuns, RunDetail (/teacher/*)
+  pages/teacher/              # TeacherSignIn, TeacherClasses, ClassOverview, StudentRuns, RunDetail (/teacher/*; RunDetail also serves /admin/runs/:id)
+  pages/admin/                # AdminStats (/admin), AdminRuns (/admin/runs), ActivityChart, AdminTabs — lazy-loaded
+  components/AdminGate.jsx    # wraps /admin/* pages; non-admins see "Page not found."
   lib/student.js              # remembers student name/email in localStorage
   lib/teacherFormat.js        # score/date formatters + join/assignment link builders
   lib/useTeacher.js           # shared signed-in-teacher store (/api/teacher/me, login, logout)
@@ -110,6 +115,18 @@ Optional teacher dashboard; students never need an account.
 - **No password reset in v1**: Google sign-in is the recovery path.
 - **Google env vars**: `GOOGLE_CLIENT_ID` (server verifies ID token audience) and `VITE_GOOGLE_CLIENT_ID` (same value, baked in at build). Unset: button hidden and `POST /api/teacher/google` → 501. Setup: Google Cloud Console → APIs & Services → Credentials → Create OAuth client ID, type **Web application**; add the Render URL and `http://localhost:5173` under Authorized JavaScript origins; set both env vars (Render + local `.env`); redeploy, since the `VITE_` one is build-time.
 
+## Admin
+
+One site-wide view of every run, free practice included. Read-only.
+
+- **Who**: a teacher account whose email is in `ADMIN_EMAILS` (comma-separated, case-insensitive) **and** that is Google-verified (`teachers.google_sub` set). Password signup doesn't verify email, so a password-only account never counts, even with a listed email; signing in with Google on such an account links it and signs out the squatter. Production therefore needs Google sign-in configured.
+- **Access**: `/api/admin/*` returns 401 signed out and **404** to non-admins (hides that the area exists). The way in is the words "site admin" in the footer (`Disclaimer.jsx`), a link to `/admin` only when `/api/teacher/me` returns `isAdmin: true`; everyone else sees plain text. There is no header link.
+- **Routes**: `GET /api/admin/runs?kind=all|class|practice&classId=&before=&limit=` (newest first, opaque `createdAt:rowid` cursor in `nextBefore`, limit 1–100, default 50; bad params fall back to defaults), `GET /api/admin/runs/:sessionId` (same shape as the teacher run detail; `student`/`classRun` null for free practice), `GET /api/admin/stats?tz=<IANA zone>`.
+- **Stats**: totals (all, 24 h, 7 d, 30 d, class vs practice, completion rate), average audited score (7 d / all) and bands, runs per day for 30 days, active class students (7 d), per class (+ a Free practice row), per scenario (subtype case variants fold onto catalog names), weakest rubric criteria (trauma vs medical, grouped the way the grader picks a rubric: exact `trauma` else medical), median student messages, abandoned rate (ungraded, <3 messages, >24 h old), DB size vs the 1 GB disk, AI tokens today vs budget. Days are bucketed by the viewer's IANA zone, not a fixed offset, so runs before a DST change land on the right day.
+- **Cost**: no AI calls, no new tables. Stats scan every session, so the result is cached 60 s per time zone (`createApp({ adminStatsTtlMs })` overrides); `storage` and `aiToday` stay live. Admin pages are lazy-loaded, so students don't download them.
+- **Privacy wording**: SelectionScreen, About and the footer say free practice isn't shared with teachers but the site admin may review transcripts (no name or email) to improve the trainer.
+- **Local testing**: set `ADMIN_EMAILS` in `.env`, create a teacher with a `googleSub` via `classRepo.createTeacher`, and use `teacherAuth.createSession(id)` as the `emt_teacher` cookie.
+
 ## Specs and plans
 
 - `docs/superpowers/specs/2026-04-25-foundation-design.md`
@@ -120,6 +137,8 @@ Optional teacher dashboard; students never need an account.
 - `docs/superpowers/plans/2026-05-04-render-deploy.md`
 - `docs/superpowers/specs/2026-10-21-teacher-dashboard-design.md`
 - `docs/superpowers/plans/2026-10-21-teacher-dashboard.md`
+- `docs/superpowers/specs/2026-10-30-admin-view-design.md`
+- `docs/superpowers/plans/2026-10-30-admin-view.md`
 
 ## Known gaps vs original (intentional)
 
@@ -149,6 +168,7 @@ The app deploys as a single Render Web Service (Starter plan, always on) that se
 - **Adjust daily budget:** change `DAILY_TOKEN_BUDGET` in Environment + redeploy (default 1,500,000 ≈ 350 sessions/day).
 - **Adjust rate limit:** change `RATE_LIMIT_PER_MIN` (default 300, POST requests only).
 - **Google sign-in:** set `GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CLIENT_ID` (same OAuth Web client ID) and redeploy; the `VITE_` one is baked in at build time. Unset = no Google button, `/api/teacher/google` → 501.
+- **Admins:** set `ADMIN_EMAILS` (comma-separated) and redeploy; each admin signs in with Google. Unset = no admins.
 - **Feedback link:** set `VITE_FEEDBACK_URL` (e.g. a Google Form) and redeploy; it's baked in at build time. Unset = no link.
 - **Deploys:** services with a disk can't do zero-downtime deploys, so each deploy has a few seconds of downtime. Deploy outside class hours.
 

@@ -9,10 +9,11 @@ const { createChatRouter } = require('./routes/chat');
 const { createScenarioRouter } = require('./routes/scenarios');
 const { createSessionsRouter } = require('./routes/sessions');
 const { createTeacherRouter } = require('./routes/teacher');
+const { createAdminRouter } = require('./routes/admin');
 const { makeTeacherAuth } = require('./services/teacherAuth');
 const { killSwitch, makeTokenMeter } = require('./services/abuseGuards');
 
-function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard, teacherAuth = makeTeacherAuth() } = {}) {
+function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard, tokenMeter, adminStatsTtlMs, teacherAuth = makeTeacherAuth() } = {}) {
   const app = express();
   // Render terminates TLS at its proxy; trust one hop so express-rate-limit
   // and req.ip read the real client IP from X-Forwarded-For.
@@ -56,6 +57,7 @@ function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard,
   });
   app.use(['/api/teacher/login', '/api/teacher/signup', '/api/teacher/google'], authLimiter);
   app.use('/api/teacher', createTeacherRouter({ teacherAuth }));
+  app.use('/api/admin', createAdminRouter({ teacherAuth, tokenMeter, statsTtlMs: adminStatsTtlMs }));
   app.use('/api/chat', createChatRouter(chatService, tokenGuard));
   app.use('/api', createScenarioRouter(scenarioGenerator, tokenGuard));
   app.use('/api/sessions', createSessionsRouter({ gradingService, tokenGuard }));
@@ -84,7 +86,7 @@ function start() {
   const chatService = makeChatService({ openai, summarizer, tokenMeter });
   const scenarioGenerator = makeScenarioGenerator({ openai, tokenMeter });
   const gradingService = makeGradingService({ openai, tokenMeter });
-  const app = createApp({ chatService, scenarioGenerator, gradingService, tokenGuard: tokenMeter.guardMiddleware });
+  const app = createApp({ chatService, scenarioGenerator, gradingService, tokenGuard: tokenMeter.guardMiddleware, tokenMeter });
   const port = Number(process.env.PORT) || 3001;
   app.listen(port, () => console.log(`[server] listening on :${port}`));
 }

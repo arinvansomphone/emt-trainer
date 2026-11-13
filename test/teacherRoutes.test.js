@@ -15,7 +15,7 @@ exports.tests = [
       const agent = request.agent(createApp());
       const res = await agent.post('/api/teacher/signup').send(creds);
       assert.strictEqual(res.status, 200);
-      assert.deepStrictEqual(Object.keys(res.body.teacher).sort(), ['email', 'id', 'name']);
+      assert.deepStrictEqual(Object.keys(res.body.teacher).sort(), ['email', 'id', 'isAdmin', 'name']);
       const cookie = [].concat(res.headers['set-cookie']).find((c) => c.startsWith('emt_teacher='));
       assert.ok(cookie, 'cookie set');
       assert.ok(/HttpOnly/i.test(cookie));
@@ -79,7 +79,7 @@ exports.tests = [
         const agent = request.agent(createApp({ teacherAuth }));
         const res = await agent.post('/api/teacher/google').send({ credential: 'tok' });
         assert.strictEqual(res.status, 200);
-        assert.deepStrictEqual(Object.keys(res.body.teacher).sort(), ['email', 'id', 'name']);
+        assert.deepStrictEqual(Object.keys(res.body.teacher).sort(), ['email', 'id', 'isAdmin', 'name']);
         assert.strictEqual(res.body.teacher.email, 't@x.edu');
         assert.strictEqual((await agent.get('/api/teacher/me')).status, 200);
       } finally {
