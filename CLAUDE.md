@@ -16,7 +16,7 @@ A faithful rebuild of [arinvansomphone/emt-scenario-trainer](https://github.com/
 cp .env.example .env       # add OPENAI_API_KEY
 npm install
 npm run dev:all            # backend :3001, frontend :5173
-npm test                   # 159 tests
+npm test                   # 163 tests
 ```
 
 Note: backend listens on `:3001` (not 3000) to avoid clashing with another local Next.js dev server.
@@ -41,7 +41,7 @@ services/
   classStats.js               # pure: per-run summary (late), class overview, per-assignment/student stats
   sessionManager.js           # session + message persistence; setScenario, getContext (model view), getHistory (full transcript)
   chatService.js              # orchestrates chat; parses [Vitals: ...] markers; runs summarizer
-  scenarioTypes.js            # static catalog (trauma + medical)
+  scenarioTypes.js            # static catalog (trauma + medical); subtype "Random" picks one uniformly server-side
   templateGenerator.js        # per-subtype clinical hints
   scenarioGenerator.js        # OpenAI → JSON scenario (patient, env, bystanders, physicalFindings)
   conversationSummarizer.js   # rolling summary once model context hits 30 messages; keeps last 8 verbatim

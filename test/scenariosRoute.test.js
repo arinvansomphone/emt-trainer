@@ -219,3 +219,59 @@ const classTests = [
   },
 ];
 exports.tests.push(...classTests);
+
+const { CATALOG, pickRandomSubtype } = require('../services/scenarioTypes');
+
+function echoGen(calls) {
+  return { generate: async (type, subtype) => { calls.push([type, subtype]); return { ...fakeScenario, type, subtype, expectedAssessment: type }; } };
+}
+
+exports.tests.push(
+  {
+    name: 'pickRandomSubtype gives every subtype an equal share of the range',
+    fn: () => {
+      for (const type of ['trauma', 'medical']) {
+        const list = CATALOG[type];
+        list.forEach((name, i) => assert.strictEqual(pickRandomSubtype(type, () => (i + 0.5) / list.length), name));
+        assert.strictEqual(pickRandomSubtype(type, () => 0), list[0]);
+        assert.strictEqual(pickRandomSubtype(type, () => 0.999999), list[list.length - 1]);
+      }
+      assert.strictEqual(pickRandomSubtype('constructor', () => 0), null);
+    },
+  },
+  {
+    name: 'Random subtype starts a real scenario from that category',
+    fn: async () => {
+      setup();
+      const calls = [];
+      const res = await request(appWithGen(echoGen(calls))).post('/api/scenarios').send({ type: 'medical', subtype: 'Random' });
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(calls.length, 1);
+      assert.strictEqual(calls[0][0], 'medical');
+      assert.ok(CATALOG.medical.includes(calls[0][1]), `got ${calls[0][1]}`);
+      const row = sm.getSession(res.body.sessionId);
+      assert.strictEqual(row.scenario_type, 'medical');
+      assert.strictEqual(JSON.parse(row.state).subtype, calls[0][1]);
+    },
+  },
+  {
+    name: 'Random subtype works with a class code',
+    fn: async () => {
+      setup();
+      const c = mkClass();
+      const calls = [];
+      const res = await request(appWithGen(echoGen(calls))).post('/api/scenarios').send({ type: 'trauma', subtype: 'Random', classCode: c.code, ...stu });
+      assert.strictEqual(res.status, 200);
+      assert.ok(CATALOG.trauma.includes(calls[0][1]));
+      assert.ok(repo.getClassRun(res.body.sessionId));
+    },
+  },
+  {
+    name: 'Random with an unknown type is rejected',
+    fn: async () => {
+      setup();
+      const res = await request(appWithGen(throwingGen)).post('/api/scenarios').send({ type: 'nope', subtype: 'Random' });
+      assert.strictEqual(res.status, 400);
+    },
+  },
+);
