@@ -38,4 +38,31 @@ function getRun(sessionId) {
   return getDb().prepare(`${RUN_SELECT} WHERE s.id = ? AND s.state IS NOT NULL`).get(sessionId) ?? null;
 }
 
-module.exports = { listRuns, getRun };
+function listStatsRows() {
+  return getDb()
+    .prepare(
+      `SELECT s.created_at, s.state, r.class_id, r.student_id,
+              (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id AND m.role = 'user') AS user_messages
+       FROM sessions s LEFT JOIN class_runs r ON r.session_id = s.id
+       WHERE s.state IS NOT NULL`
+    )
+    .all();
+}
+
+function listClassesWithTeachers() {
+  return getDb()
+    .prepare(
+      `SELECT c.id, c.name, c.code, t.name AS teacher_name,
+              (SELECT COUNT(*) FROM students st WHERE st.class_id = c.id) AS students
+       FROM classes c JOIN teachers t ON t.id = c.teacher_id
+       ORDER BY c.created_at, c.rowid`
+    )
+    .all();
+}
+
+function dbSizeBytes() {
+  const db = getDb();
+  return db.pragma('page_count', { simple: true }) * db.pragma('page_size', { simple: true });
+}
+
+module.exports = { listRuns, getRun, listStatsRows, listClassesWithTeachers, dbSizeBytes };

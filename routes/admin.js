@@ -2,10 +2,12 @@ const express = require('express');
 const adminRepo = require('../services/adminRepo');
 const { formatCode } = require('../services/classRepo');
 const { summarizeRun } = require('../services/classStats');
+const { computeAdminStats } = require('../services/adminStats');
 const sessionManager = require('../services/sessionManager');
 
 const NOT_FOUND = { error: 'not found' };
 const KINDS = new Set(['all', 'class', 'practice']);
+const DISK_BYTES = 1_000_000_000; // render.yaml: sizeGB 1
 
 function parseState(raw) {
   try {
@@ -35,9 +37,16 @@ function runItem(row) {
   };
 }
 
-function createAdminRouter({ teacherAuth }) {
+function parseTzOffset(raw) {
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.max(-840, Math.min(840, Math.round(n))) : 0;
+}
+
+function createAdminRouter({ teacherAuth, tokenMeter = null, statsTtlMs = 60_000 }) {
   const router = express.Router();
   router.use(teacherAuth.requireAdmin);
+  // Stats scan every session; cache per timezone so refreshes don't block chats.
+  const statsCache = new Map();
 
   function handle(fn) {
     return async (req, res) => {
@@ -58,6 +67,23 @@ function createAdminRouter({ teacherAuth }) {
     const rows = adminRepo.listRuns({ kind, classId, limit, before: req.query.before && Number.isFinite(before) ? before : null });
     const runs = rows.map(runItem);
     res.json({ runs, nextBefore: runs.length === limit ? runs[runs.length - 1].createdAt : null });
+  }));
+
+  router.get('/stats', handle(async (req, res) => {
+    const tzOffsetMin = parseTzOffset(req.query.tzOffset);
+    const now = Date.now();
+    let entry = statsCache.get(tzOffsetMin);
+    if (!entry || now - entry.generatedAt >= statsTtlMs) {
+      const classes = adminRepo.listClassesWithTeachers().map((c) => ({ ...c, code: formatCode(c.code) }));
+      entry = { generatedAt: now, stats: computeAdminStats({ runs: adminRepo.listStatsRows(), classes, now, tzOffsetMin }) };
+      statsCache.set(tzOffsetMin, entry);
+    }
+    res.json({
+      ...entry.stats,
+      generatedAt: entry.generatedAt,
+      storage: { bytes: adminRepo.dbSizeBytes(), diskBytes: DISK_BYTES },
+      ...(tokenMeter ? { aiToday: tokenMeter.snapshot() } : {}),
+    });
   }));
 
   router.get('/runs/:sessionId', handle(async (req, res) => {

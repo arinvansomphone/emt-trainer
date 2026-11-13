@@ -65,6 +65,74 @@ const get = (app, path, cookie) => request(app).get(path).set('Cookie', cookie |
 
 exports.tests = [
   {
+    name: 'stats 404 for non-admin',
+    fn: () => asAdmin(async () => {
+      setup();
+      const { a } = seedWorld();
+      assert.strictEqual((await get(createApp(), '/api/admin/stats', a.cookie)).status, 404);
+    }),
+  },
+  {
+    name: 'stats shape for admin',
+    fn: () => asAdmin(async () => {
+      setup();
+      const { admin } = seedWorld();
+      const res = await get(createApp(), '/api/admin/stats', admin.cookie);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.totals.all, 3);
+      assert.strictEqual(res.body.totals.practice, 1);
+      assert.strictEqual(res.body.daily.length, 30);
+      const periodA = res.body.perClass.find((c) => c.name === 'Period A');
+      assert.strictEqual(periodA.teacher, 'a');
+      assert.strictEqual(periodA.students, 1);
+      assert.match(periodA.code, /^[A-Z0-9]{3}-[A-Z0-9]{3}$/);
+      assert.ok(res.body.storage.bytes > 0);
+      assert.strictEqual(res.body.storage.diskBytes, 1_000_000_000);
+      assert.strictEqual(typeof res.body.generatedAt, 'number');
+    }),
+  },
+  {
+    name: 'aiToday present only with tokenMeter',
+    fn: () => asAdmin(async () => {
+      setup();
+      const { admin } = seedWorld();
+      const { makeTokenMeter } = require('../services/abuseGuards');
+      const withMeter = await get(createApp({ tokenMeter: makeTokenMeter() }), '/api/admin/stats', admin.cookie);
+      assert.strictEqual(withMeter.body.aiToday.budget, 1_500_000);
+      assert.strictEqual(withMeter.body.aiToday.tokens, 0);
+      const without = await get(createApp(), '/api/admin/stats', admin.cookie);
+      assert.strictEqual(without.body.aiToday, undefined);
+    }),
+  },
+  {
+    name: 'bad tzOffset → 200 with UTC days',
+    fn: () => asAdmin(async () => {
+      setup();
+      const { admin } = seedWorld();
+      const app = createApp();
+      const dates = async (q) => (await get(app, `/api/admin/stats?${q}`, admin.cookie)).body.daily.map((d) => d.date);
+      const utc = await dates('tzOffset=0');
+      assert.deepStrictEqual(await dates('tzOffset=abc'), utc);
+      const clamped = await get(app, '/api/admin/stats?tzOffset=99999', admin.cookie);
+      assert.strictEqual(clamped.status, 200);
+    }),
+  },
+  {
+    name: 'stats are cached for 60 s; statsTtlMs 0 disables the cache',
+    fn: () => asAdmin(async () => {
+      setup();
+      const { admin } = seedWorld();
+      const cached = createApp();
+      const first = await get(cached, '/api/admin/stats', admin.cookie);
+      seedRun({ at: 9000 });
+      const second = await get(cached, '/api/admin/stats', admin.cookie);
+      assert.strictEqual(second.body.generatedAt, first.body.generatedAt);
+      assert.strictEqual(second.body.totals.all, 3);
+      const fresh = await get(createApp({ adminStatsTtlMs: 0 }), '/api/admin/stats', admin.cookie);
+      assert.strictEqual(fresh.body.totals.all, 4);
+    }),
+  },
+  {
     name: 'admin routes: 401 signed out, 404 ordinary teacher, 404 listed password-only account, 200 admin',
     fn: () => asAdmin(async () => {
       setup();

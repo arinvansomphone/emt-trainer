@@ -13,7 +13,7 @@ const { createAdminRouter } = require('./routes/admin');
 const { makeTeacherAuth } = require('./services/teacherAuth');
 const { killSwitch, makeTokenMeter } = require('./services/abuseGuards');
 
-function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard, tokenMeter, teacherAuth = makeTeacherAuth() } = {}) {
+function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard, tokenMeter, adminStatsTtlMs, teacherAuth = makeTeacherAuth() } = {}) {
   const app = express();
   // Render terminates TLS at its proxy; trust one hop so express-rate-limit
   // and req.ip read the real client IP from X-Forwarded-For.
@@ -57,7 +57,7 @@ function createApp({ chatService, scenarioGenerator, gradingService, tokenGuard,
   });
   app.use(['/api/teacher/login', '/api/teacher/signup', '/api/teacher/google'], authLimiter);
   app.use('/api/teacher', createTeacherRouter({ teacherAuth }));
-  app.use('/api/admin', createAdminRouter({ teacherAuth, tokenMeter }));
+  app.use('/api/admin', createAdminRouter({ teacherAuth, tokenMeter, statsTtlMs: adminStatsTtlMs }));
   app.use('/api/chat', createChatRouter(chatService, tokenGuard));
   app.use('/api', createScenarioRouter(scenarioGenerator, tokenGuard));
   app.use('/api/sessions', createSessionsRouter({ gradingService, tokenGuard }));
