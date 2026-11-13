@@ -2,7 +2,7 @@ const express = require('express');
 const adminRepo = require('../services/adminRepo');
 const { formatCode } = require('../services/classRepo');
 const { summarizeRun } = require('../services/classStats');
-const { computeAdminStats } = require('../services/adminStats');
+const { computeAdminStats, resolveZone } = require('../services/adminStats');
 const sessionManager = require('../services/sessionManager');
 
 const NOT_FOUND = { error: 'not found' };
@@ -37,15 +37,10 @@ function runItem(row) {
   };
 }
 
-function parseTzOffset(raw) {
-  const n = Number(raw);
-  return Number.isFinite(n) ? Math.max(-840, Math.min(840, Math.round(n))) : 0;
-}
-
 function createAdminRouter({ teacherAuth, tokenMeter = null, statsTtlMs = 60_000 }) {
   const router = express.Router();
   router.use(teacherAuth.requireAdmin);
-  // Stats scan every session; cache per timezone so refreshes don't block chats.
+  // Stats scan every session; cache per time zone so refreshes don't block chats.
   const statsCache = new Map();
 
   function handle(fn) {
@@ -70,13 +65,13 @@ function createAdminRouter({ teacherAuth, tokenMeter = null, statsTtlMs = 60_000
   }));
 
   router.get('/stats', handle(async (req, res) => {
-    const tzOffsetMin = parseTzOffset(req.query.tzOffset);
+    const tz = typeof req.query.tz === 'string' && req.query.tz.length <= 64 ? resolveZone(req.query.tz) : 'UTC';
     const now = Date.now();
-    let entry = statsCache.get(tzOffsetMin);
+    let entry = statsCache.get(tz);
     if (!entry || now - entry.generatedAt >= statsTtlMs) {
       const classes = adminRepo.listClassesWithTeachers().map((c) => ({ ...c, code: formatCode(c.code) }));
-      entry = { generatedAt: now, stats: computeAdminStats({ runs: adminRepo.listStatsRows(), classes, now, tzOffsetMin }) };
-      statsCache.set(tzOffsetMin, entry);
+      entry = { generatedAt: now, stats: computeAdminStats({ runs: adminRepo.listStatsRows(), classes, now, timeZone: tz }) };
+      statsCache.set(tz, entry);
     }
     res.json({
       ...entry.stats,

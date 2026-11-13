@@ -12,7 +12,7 @@ function run({ at, type = 'medical', subtype = 'Cardiac', classId = null, studen
   return { created_at: at, state: s, class_id: classId, student_id: studentId, user_messages: msgs };
 }
 const rows = (...scores) => scores.map((score, i) => ({ criterion: `C${i}`, score }));
-const stats = (runs, extra = {}) => computeAdminStats({ runs, classes: [], now, tzOffsetMin: 0, ...extra });
+const stats = (runs, extra = {}) => computeAdminStats({ runs, classes: [], now, timeZone: 'UTC', ...extra });
 
 function walkNoNaN(v, path = '') {
   if (typeof v === 'number') assert.ok(!Number.isNaN(v), `NaN at ${path}`);
@@ -31,10 +31,10 @@ exports.tests = [
     },
   },
   {
-    name: 'daily buckets honor tzOffset',
+    name: 'daily buckets honor the viewer time zone',
     fn: () => {
       const at = Date.UTC(2026, 9, 30, 3);
-      const pdt = stats([run({ at })], { tzOffsetMin: 420 });
+      const pdt = stats([run({ at })], { timeZone: 'America/Los_Angeles' });
       assert.strictEqual(pdt.daily.find((d) => d.date === '2026-10-29').started, 1);
       const utc = stats([run({ at })]);
       assert.strictEqual(utc.daily.length, 30);
@@ -67,6 +67,30 @@ exports.tests = [
       assert.strictEqual(s.totals.completionRate, 20);
       assert.strictEqual(s.engagement.abandonedRate, 50);
       assert.strictEqual(s.engagement.medianUserMessages, 1);
+    },
+  },
+  {
+    // Both runs are PDT-era; "now" is PST. A fixed offset taken today (UTC-8) would put the
+    // 00:29 Oct 28 run on Oct 27, and UTC would put the 23:00 Oct 27 run on Oct 28.
+    name: 'daily buckets use the zone rules in effect on each day, across a DST change',
+    fn: () => {
+      const s = computeAdminStats({
+        runs: [run({ at: Date.UTC(2026, 9, 28, 7, 29) }), run({ at: Date.UTC(2026, 9, 28, 6, 0) })],
+        classes: [],
+        now: Date.UTC(2026, 10, 12, 20),
+        timeZone: 'America/Los_Angeles',
+      });
+      assert.strictEqual(s.daily.find((d) => d.date === '2026-10-28').started, 1);
+      assert.strictEqual(s.daily.find((d) => d.date === '2026-10-27').started, 1);
+      assert.strictEqual(s.daily[29].date, '2026-11-12');
+    },
+  },
+  {
+    name: 'unknown time zone falls back to UTC',
+    fn: () => {
+      const s = stats([run({ at: Date.UTC(2026, 9, 30, 3) })], { timeZone: 'Not/AZone' });
+      assert.strictEqual(s.daily[29].date, '2026-10-30');
+      assert.strictEqual(s.daily[29].started, 1);
     },
   },
   {
@@ -109,6 +133,22 @@ exports.tests = [
     },
   },
   {
+    // Older sessions stored lowercase subtypes ("cardiac"); they are the same scenario.
+    name: 'perScenario merges case variants under the catalog name',
+    fn: () => {
+      const s = stats([
+        run({ at: now - H, type: 'medical', subtype: 'cardiac' }),
+        run({ at: now - H, type: 'medical', subtype: 'Cardiac' }),
+        run({ at: now - H, type: 'Medical', subtype: 'CARDIAC ' }),
+        run({ at: now - H, type: 'medical', subtype: 'Custom thing' }),
+      ]);
+      assert.deepStrictEqual(s.perScenario.map((p) => [p.type, p.subtype, p.runs]), [
+        ['medical', 'Cardiac', 3],
+        ['medical', 'Custom thing', 1],
+      ]);
+    },
+  },
+  {
     name: 'criteria lowest first, split trauma/medical',
     fn: () => {
       const tr = [{ criterion: 'BSI / PPE', score: 3 }, { criterion: 'C-spine consideration', score: 0 }];
@@ -138,7 +178,7 @@ exports.tests = [
   {
     name: 'empty input',
     fn: () => {
-      const s = computeAdminStats({ runs: [], classes: [], now, tzOffsetMin: 0 });
+      const s = computeAdminStats({ runs: [], classes: [], now, timeZone: 'UTC' });
       assert.strictEqual(s.totals.all, 0);
       assert.strictEqual(s.totals.completionRate, null);
       assert.strictEqual(s.scores.avgAll, null);

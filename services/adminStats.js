@@ -2,6 +2,15 @@
 // callers pass every scenario session, free practice included.
 
 const { parseRun, addCriteria } = require('./classStats');
+const { CATALOG } = require('./scenarioTypes');
+
+// Older sessions stored generator output verbatim ("cardiac"); fold case variants onto the catalog name.
+function canonicalScenario(type, subtype) {
+  const t = String(type).trim().toLowerCase();
+  const s = String(subtype).trim();
+  const known = (CATALOG[t] || []).find((name) => name.toLowerCase() === s.toLowerCase());
+  return { type: t, subtype: known || s };
+}
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -18,8 +27,18 @@ function median(xs) {
   return Math.round(m * 10) / 10;
 }
 
-// tzOffsetMin follows Date#getTimezoneOffset: minutes behind UTC, positive west of UTC.
-const dayKey = (ms, tzOffsetMin) => new Date(ms - tzOffsetMin * 60_000).toISOString().slice(0, 10);
+// An IANA zone name, not a fixed offset: each run is bucketed by the zone's rules on its own
+// day, so runs from before a daylight-saving change land on the right calendar day.
+function resolveZone(timeZone) {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone }).resolvedOptions().timeZone;
+  } catch {
+    return 'UTC';
+  }
+}
+
+// en-CA formats dates as YYYY-MM-DD.
+const dayFormatter = (timeZone) => new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
 
 function criteriaList(map) {
   return [...map.entries()]
@@ -40,7 +59,9 @@ function addTo(b, r) {
   if (b.lastActivity == null || r.at > b.lastActivity) b.lastActivity = r.at;
 }
 
-function computeAdminStats({ runs = [], classes = [], now = Date.now(), tzOffsetMin = 0 } = {}) {
+function computeAdminStats({ runs = [], classes = [], now = Date.now(), timeZone = 'UTC' } = {}) {
+  const fmt = dayFormatter(resolveZone(timeZone));
+  const dayKey = (ms) => fmt.format(new Date(ms));
   const parsed = runs.map((row) => {
     const p = parseRun(row);
     let assessment = null;
@@ -59,14 +80,15 @@ function computeAdminStats({ runs = [], classes = [], now = Date.now(), tzOffset
 
   const daily = [];
   const byDay = new Map();
-  const today = new Date(`${dayKey(now, tzOffsetMin)}T00:00:00Z`).getTime();
+  // Calendar arithmetic on the date key itself, so the 30 labels never skip or repeat a day.
+  const today = new Date(`${dayKey(now)}T00:00:00Z`).getTime();
   for (let i = DAYS_SHOWN - 1; i >= 0; i--) {
     const entry = { date: new Date(today - i * DAY).toISOString().slice(0, 10), started: 0, graded: 0 };
     daily.push(entry);
     byDay.set(entry.date, entry);
   }
   for (const r of parsed) {
-    const entry = byDay.get(dayKey(r.at, tzOffsetMin));
+    const entry = byDay.get(dayKey(r.at));
     if (!entry) continue;
     entry.started += 1;
     if (r.graded) entry.graded += 1;
@@ -90,8 +112,9 @@ function computeAdminStats({ runs = [], classes = [], now = Date.now(), tzOffset
   const scenarios = new Map();
   for (const r of parsed) {
     if (!r.type || !r.subtype) continue;
-    const key = `${r.type}\u0000${r.subtype}`;
-    if (!scenarios.has(key)) scenarios.set(key, { type: r.type, subtype: r.subtype, b: bucket() });
+    const { type, subtype } = canonicalScenario(r.type, r.subtype);
+    const key = `${type}\u0000${subtype.toLowerCase()}`;
+    if (!scenarios.has(key)) scenarios.set(key, { type, subtype, b: bucket() });
     addTo(scenarios.get(key).b, r);
   }
   const perScenario = [...scenarios.values()]
@@ -137,4 +160,4 @@ function computeAdminStats({ runs = [], classes = [], now = Date.now(), tzOffset
   };
 }
 
-module.exports = { computeAdminStats };
+module.exports = { computeAdminStats, resolveZone };

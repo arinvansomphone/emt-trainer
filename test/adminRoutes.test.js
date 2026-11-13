@@ -105,16 +105,17 @@ exports.tests = [
     }),
   },
   {
-    name: 'bad tzOffset → 200 with UTC days',
+    name: 'bad tz → 200 with UTC days',
     fn: () => asAdmin(async () => {
       setup();
       const { admin } = seedWorld();
       const app = createApp();
       const dates = async (q) => (await get(app, `/api/admin/stats?${q}`, admin.cookie)).body.daily.map((d) => d.date);
-      const utc = await dates('tzOffset=0');
-      assert.deepStrictEqual(await dates('tzOffset=abc'), utc);
-      const clamped = await get(app, '/api/admin/stats?tzOffset=99999', admin.cookie);
-      assert.strictEqual(clamped.status, 200);
+      const utc = await dates('tz=UTC');
+      assert.deepStrictEqual(await dates('tz=Not%2FAZone'), utc);
+      assert.deepStrictEqual(await dates(''), utc);
+      const odd = await get(app, '/api/admin/stats?tz=' + 'x'.repeat(500), admin.cookie);
+      assert.strictEqual(odd.status, 200);
     }),
   },
   {

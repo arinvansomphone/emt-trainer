@@ -47,6 +47,10 @@
   --color-info-soft: #E0EAFB;
 
   /* Chat role colors */
+  /* Admin activity chart: one-hue ramp, validated against the card surface */
+  --color-chart-started: #7DBDB6;
+  --color-chart-graded: #1B7F7A;
+
   --color-patient: #1C1A17;
   --color-patient-soft: #F4EFE6;
   --color-moderator: #1B7F7A;
@@ -89,6 +93,9 @@
   --color-warn-soft: rgba(199, 116, 0, 0.22);
   --color-bad-soft: rgba(194, 54, 42, 0.22);
   --color-info-soft: rgba(45, 108, 223, 0.22);
+
+  --color-chart-started: #2C6E78;
+  --color-chart-graded: #4FC2D9;
 
   --color-patient: #F4EFE3;
   --color-patient-soft: #1B2A26;
