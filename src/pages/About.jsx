@@ -17,7 +17,7 @@ export default function About() {
             When you're done, an AI grader scores your run against an NREMT-style patient assessment rubric.
           </p>
           <p>
-            When you join a class or open an assignment, your name, email, scores, and transcript are shared with your teacher. Free practice is not shared with any teacher. The site admin may review transcripts (no name or email) to improve the trainer.
+            When you join a class or open an assignment, your name, email, scores, and transcript are shared with your teacher and visible to the site admin. Free practice is not shared with any teacher. The site admin may review transcripts (no name or email) to improve the trainer.
           </p>
           <Separator />
           <div>

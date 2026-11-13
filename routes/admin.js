@@ -23,6 +23,12 @@ function parseLimit(raw) {
   return Number.isInteger(n) && n >= 1 ? Math.min(n, 100) : 50;
 }
 
+// Opaque "createdAt:rowid" cursor from a previous page's nextBefore; anything else means "from the top".
+function parseCursor(raw) {
+  const m = typeof raw === 'string' ? /^(\d+):(\d+)$/.exec(raw) : null;
+  return m ? { at: Number(m[1]), rowid: Number(m[2]) } : null;
+}
+
 function classRunOf(row) {
   if (!row.class_id) return null;
   return { classId: row.class_id, className: row.class_name, code: formatCode(row.class_code), teacherName: row.teacher_name };
@@ -57,11 +63,10 @@ function createAdminRouter({ teacherAuth, tokenMeter = null, statsTtlMs = 60_000
   router.get('/runs', handle(async (req, res) => {
     const kind = KINDS.has(req.query.kind) ? req.query.kind : 'all';
     const limit = parseLimit(req.query.limit);
-    const before = Number(req.query.before);
     const classId = typeof req.query.classId === 'string' && req.query.classId ? req.query.classId : null;
-    const rows = adminRepo.listRuns({ kind, classId, limit, before: req.query.before && Number.isFinite(before) ? before : null });
-    const runs = rows.map(runItem);
-    res.json({ runs, nextBefore: runs.length === limit ? runs[runs.length - 1].createdAt : null });
+    const rows = adminRepo.listRuns({ kind, classId, limit, before: parseCursor(req.query.before) });
+    const last = rows[rows.length - 1];
+    res.json({ runs: rows.map(runItem), nextBefore: rows.length === limit ? `${last.created_at}:${last.row_id}` : null });
   }));
 
   router.get('/stats', handle(async (req, res) => {

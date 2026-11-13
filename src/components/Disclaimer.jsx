@@ -11,7 +11,7 @@ export default function Disclaimer() {
         Conversations are processed by OpenAI. Do not enter real patient information or other personal data.
       </p>
       <p>
-        Class runs share your name, email, scores, and transcript with your teacher; free practice does not, though the site admin may review transcripts (no name or email) to improve the trainer.
+        Class runs share your name, email, scores, and transcript with your teacher and the site admin; free practice is not shared with teachers, though the site admin may review transcripts (no name or email) to improve the trainer.
       </p>
       {FEEDBACK_URL && (
         <p>

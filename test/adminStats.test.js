@@ -166,6 +166,33 @@ exports.tests = [
     },
   },
   {
+    // gradingService uses RUBRIC[expectedAssessment] || RUBRIC.medical, so only an exact
+    // 'trauma' was graded on the trauma rubric. Prototype keys must not crash the stats.
+    name: 'criteria group the way the grader picks a rubric',
+    fn: () => {
+      const graded = (expectedAssessment, criterion) => run({
+        at: now - H,
+        state: JSON.stringify({ type: 'trauma', subtype: 'MVC', ...(expectedAssessment === undefined ? {} : { expectedAssessment }), grade: { overall: {}, rubric: [{ criterion, score: 2 }] } }),
+      });
+      const s = stats([
+        graded('trauma', 'T-exact'),
+        graded('Trauma', 'M-capital'),
+        graded('both', 'M-both'),
+        graded('constructor', 'M-proto'),
+        graded(undefined, 'M-missing'),
+      ]);
+      assert.deepStrictEqual(s.criteria.trauma.map((c) => c.criterion), ['T-exact']);
+      assert.deepStrictEqual(s.criteria.medical.map((c) => c.criterion).sort(), ['M-both', 'M-capital', 'M-missing', 'M-proto']);
+    },
+  },
+  {
+    name: 'prototype-key scenario types do not crash perScenario',
+    fn: () => {
+      const s = stats([run({ at: now - H, type: 'constructor', subtype: 'toString' })]);
+      assert.deepStrictEqual(s.perScenario.map((p) => [p.type, p.subtype]), [['constructor', 'toString']]);
+    },
+  },
+  {
     name: 'corrupt state counts as a run, never NaN',
     fn: () => {
       const s = stats([run({ at: now - H, state: '{bad' }), run({ at: now - H, state: null })]);

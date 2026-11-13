@@ -3,7 +3,7 @@ const { getDb } = require('../database/databaseManager');
 // Read-only queries over every scenario session, free practice included. Admin only.
 
 const RUN_SELECT = `
-  SELECT s.id AS session_id, s.created_at, s.state,
+  SELECT s.id AS session_id, s.rowid AS row_id, s.created_at, s.state,
          r.class_id, c.name AS class_name, c.code AS class_code, t.name AS teacher_name,
          r.student_id, st.name AS student_name, st.email_normalized AS student_email,
          r.assignment_id, a.due_at,
@@ -24,9 +24,10 @@ function listRuns({ kind = 'all', classId = null, before = null, limit = 50 } = 
     where.push('r.class_id = ?');
     params.push(classId);
   }
-  if (before != null) {
-    where.push('s.created_at < ?');
-    params.push(before);
+  // Keyset cursor on (created_at, rowid): the same order as ORDER BY, so ties are never skipped.
+  if (before) {
+    where.push('(s.created_at < ? OR (s.created_at = ? AND s.rowid < ?))');
+    params.push(before.at, before.at, before.rowid);
   }
   params.push(limit);
   return getDb()

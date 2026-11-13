@@ -66,7 +66,7 @@ export default function AdminStats() {
       <AdminTabs />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Usage</h1>
-        <p className="text-sm text-muted-foreground">Every run on this site, free practice included. Updates every minute.</p>
+        <p className="text-sm text-muted-foreground">Every run on this site, free practice included. Figures can be up to a minute old; reload to refresh.</p>
       </div>
     </>
   );

@@ -8,7 +8,7 @@ const { CATALOG } = require('./scenarioTypes');
 function canonicalScenario(type, subtype) {
   const t = String(type).trim().toLowerCase();
   const s = String(subtype).trim();
-  const known = (CATALOG[t] || []).find((name) => name.toLowerCase() === s.toLowerCase());
+  const known = (Object.hasOwn(CATALOG, t) ? CATALOG[t] : []).find((name) => name.toLowerCase() === s.toLowerCase());
   return { type: t, subtype: known || s };
 }
 
@@ -64,10 +64,12 @@ function computeAdminStats({ runs = [], classes = [], now = Date.now(), timeZone
   const dayKey = (ms) => fmt.format(new Date(ms));
   const parsed = runs.map((row) => {
     const p = parseRun(row);
-    let assessment = null;
+    // Mirrors gradingService (RUBRIC[expectedAssessment] || RUBRIC.medical): only an exact
+    // 'trauma' was scored on the trauma rubric.
+    let assessment = 'medical';
     try {
       const st = JSON.parse(row.state);
-      assessment = st && (st.expectedAssessment || st.type);
+      if (st && st.expectedAssessment === 'trauma') assessment = 'trauma';
     } catch { /* corrupt state: counted as a run, nothing else */ }
     return { ...p, assessment, at: row.created_at, classId: row.class_id, studentId: row.student_id, msgs: row.user_messages || 0 };
   });
@@ -122,7 +124,7 @@ function computeAdminStats({ runs = [], classes = [], now = Date.now(), timeZone
     .sort((a, b) => b.runs - a.runs || `${a.type}${a.subtype}`.localeCompare(`${b.type}${b.subtype}`));
 
   const crit = { trauma: new Map(), medical: new Map() };
-  for (const r of graded) if (crit[r.assessment]) addCriteria(crit[r.assessment], r.rubric);
+  for (const r of graded) addCriteria(crit[r.assessment], r.rubric);
 
   const bands = { lt50: 0, from50: 0, from70: 0, from85: 0 };
   for (const s of scores) {

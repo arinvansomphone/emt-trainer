@@ -192,10 +192,30 @@ exports.tests = [
       const { admin, runB } = seedWorld();
       const first = await get(app, '/api/admin/runs?limit=2', admin.cookie);
       assert.strictEqual(first.body.runs.length, 2);
-      assert.strictEqual(first.body.nextBefore, 2000);
-      const second = await get(app, `/api/admin/runs?limit=2&before=${first.body.nextBefore}`, admin.cookie);
+      assert.strictEqual(typeof first.body.nextBefore, 'string');
+      const second = await get(app, `/api/admin/runs?limit=2&before=${encodeURIComponent(first.body.nextBefore)}`, admin.cookie);
       assert.deepStrictEqual(second.body.runs.map((r) => r.sessionId), [runB]);
       assert.strictEqual(second.body.nextBefore, null);
+    }),
+  },
+  {
+    // A class starting together, or backfilled rows, can share a millisecond.
+    name: 'pagination never skips runs that share a created_at',
+    fn: () => asAdmin(async () => {
+      setup();
+      const app = createApp();
+      const admin = signIn(ADMIN);
+      const ids = [seedRun({ at: 1000 }), seedRun({ at: 1000 }), seedRun({ at: 1000 })];
+      const seen = [];
+      let before = null;
+      for (let page = 0; page < 5; page++) {
+        const q = before == null ? 'limit=2' : `limit=2&before=${encodeURIComponent(before)}`;
+        const res = await get(app, `/api/admin/runs?${q}`, admin.cookie);
+        seen.push(...res.body.runs.map((r) => r.sessionId));
+        before = res.body.nextBefore;
+        if (before == null) break;
+      }
+      assert.deepStrictEqual([...seen].sort(), [...ids].sort());
     }),
   },
   {
