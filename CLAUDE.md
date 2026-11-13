@@ -16,7 +16,7 @@ A faithful rebuild of [arinvansomphone/emt-scenario-trainer](https://github.com/
 cp .env.example .env       # add OPENAI_API_KEY
 npm install
 npm run dev:all            # backend :3001, frontend :5173
-npm test                   # 156 tests
+npm test                   # 159 tests
 ```
 
 Note: backend listens on `:3001` (not 3000) to avoid clashing with another local Next.js dev server.
@@ -121,8 +121,8 @@ One site-wide view of every run, free practice included. Read-only.
 
 - **Who**: a teacher account whose email is in `ADMIN_EMAILS` (comma-separated, case-insensitive) **and** that is Google-verified (`teachers.google_sub` set). Password signup doesn't verify email, so a password-only account never counts, even with a listed email; signing in with Google on such an account links it and signs out the squatter. Production therefore needs Google sign-in configured.
 - **Access**: `/api/admin/*` returns 401 signed out and **404** to non-admins (hides that the area exists). The Header shows an Admin link only when `/api/teacher/me` returns `isAdmin: true`.
-- **Routes**: `GET /api/admin/runs?kind=all|class|practice&classId=&before=&limit=` (newest first, cursor on `created_at`, limit 1–100, default 50; bad params fall back to defaults), `GET /api/admin/runs/:sessionId` (same shape as the teacher run detail; `student`/`classRun` null for free practice), `GET /api/admin/stats?tz=<IANA zone>`.
-- **Stats**: totals (all, 24 h, 7 d, 30 d, class vs practice, completion rate), average audited score (7 d / all) and bands, runs per day for 30 days, active class students (7 d), per class (+ a Free practice row), per scenario (subtype case variants fold onto catalog names), weakest rubric criteria (trauma/medical), median student messages, abandoned rate (ungraded, <3 messages, >24 h old), DB size vs the 1 GB disk, AI tokens today vs budget. Days are bucketed by the viewer's IANA zone, not a fixed offset, so runs before a DST change land on the right day.
+- **Routes**: `GET /api/admin/runs?kind=all|class|practice&classId=&before=&limit=` (newest first, opaque `createdAt:rowid` cursor in `nextBefore`, limit 1–100, default 50; bad params fall back to defaults), `GET /api/admin/runs/:sessionId` (same shape as the teacher run detail; `student`/`classRun` null for free practice), `GET /api/admin/stats?tz=<IANA zone>`.
+- **Stats**: totals (all, 24 h, 7 d, 30 d, class vs practice, completion rate), average audited score (7 d / all) and bands, runs per day for 30 days, active class students (7 d), per class (+ a Free practice row), per scenario (subtype case variants fold onto catalog names), weakest rubric criteria (trauma vs medical, grouped the way the grader picks a rubric: exact `trauma` else medical), median student messages, abandoned rate (ungraded, <3 messages, >24 h old), DB size vs the 1 GB disk, AI tokens today vs budget. Days are bucketed by the viewer's IANA zone, not a fixed offset, so runs before a DST change land on the right day.
 - **Cost**: no AI calls, no new tables. Stats scan every session, so the result is cached 60 s per time zone (`createApp({ adminStatsTtlMs })` overrides); `storage` and `aiToday` stay live. Admin pages are lazy-loaded, so students don't download them.
 - **Privacy wording**: SelectionScreen, About and the footer say free practice isn't shared with teachers but the site admin may review transcripts (no name or email) to improve the trainer.
 - **Local testing**: set `ADMIN_EMAILS` in `.env`, create a teacher with a `googleSub` via `classRepo.createTeacher`, and use `teacherAuth.createSession(id)` as the `emt_teacher` cookie.
