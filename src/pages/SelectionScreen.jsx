@@ -55,7 +55,10 @@ export default function SelectionScreen() {
       <p className="text-sm text-muted-foreground mb-4">
         Questions or concerns? Email <a href="mailto:arinv@stanford.edu" className="underline">arinv@stanford.edu</a>.
       </p>
-      <p className="text-sm font-medium mb-3">Free practice — not shared with any teacher.</p>
+      <p className="text-sm font-medium mb-3">
+        Free practice — not shared with any teacher.{' '}
+        <span className="font-normal text-muted-foreground">The site admin may review transcripts (no name or email) to improve the trainer.</span>
+      </p>
       <ScenarioGrid catalog={catalog} busy={busy} onPick={start} />
       <form className="flex gap-2 mt-6 max-w-sm" onSubmit={joinClass}>
         <Input value={joinCode} onChange={(e) => setJoinCode(e.target.value)} placeholder="Joining a class? Enter code" aria-label="Class code" />

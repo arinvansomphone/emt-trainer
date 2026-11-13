@@ -47,6 +47,7 @@ export default function Header() {
           <NavItem to="/">Scenarios</NavItem>
           <NavItem to="/about">About</NavItem>
           <NavItem to="/teacher" end={false}>Teachers</NavItem>
+          {teacher?.isAdmin && <NavItem to="/admin" end={false}>Admin</NavItem>}
           {teacher && (
             <button type="button" onClick={signOut} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Sign out
