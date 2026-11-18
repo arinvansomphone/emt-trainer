@@ -1,5 +1,6 @@
 // Pure aggregation for the teacher dashboard. No DB access: callers pass
 // class-run rows only, so free-practice sessions can never appear here.
+// Admin-wide stats (free practice included) live in adminStats.js.
 
 const isNum = (x) => typeof x === 'number' && Number.isFinite(x);
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
@@ -153,4 +154,4 @@ function computeClassOverview({ runs = [], students = [], assignments = [] } = {
   return { metrics, criteria, assignments: assignmentsOut, students: studentsOut };
 }
 
-module.exports = { computeClassOverview, summarizeRun };
+module.exports = { computeClassOverview, summarizeRun, parseRun, addCriteria };

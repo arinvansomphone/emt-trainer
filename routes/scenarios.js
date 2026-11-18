@@ -1,5 +1,5 @@
 const express = require('express');
-const { CATALOG, isValid } = require('../services/scenarioTypes');
+const { CATALOG, RANDOM, isValid, pickRandomSubtype } = require('../services/scenarioTypes');
 const sm = require('../services/sessionManager');
 const { aiErrorResponse } = require('../services/aiErrors');
 const classRepo = require('../services/classRepo');
@@ -63,6 +63,8 @@ function createScenarioRouter(scenarioGenerator, tokenGuard) {
       if (!name || name.length > 100 || email.length > 254 || !email.includes('@')) return res.status(400).json({ error: NEED_STUDENT });
       student = { name, email, cls };
     }
+    // Resolved here so the session stores the real subtype (stats, grading, transcripts).
+    if (subtype === RANDOM && !hasAssignment) subtype = pickRandomSubtype(type);
     if (!isValid(type, subtype)) {
       return res.status(400).json({ error: 'invalid type or subtype' });
     }

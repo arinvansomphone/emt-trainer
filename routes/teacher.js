@@ -17,12 +17,12 @@ function parseState(raw) {
   }
 }
 
-function publicTeacher(t) {
-  return { id: t.id, email: t.email, name: t.name };
-}
-
 function createTeacherRouter({ teacherAuth }) {
   const router = express.Router();
+
+  function publicTeacher(t) {
+    return { id: t.id, email: t.email, name: t.name, isAdmin: teacherAuth.isAdmin(t) };
+  }
 
   function handle(fn) {
     return async (req, res) => {

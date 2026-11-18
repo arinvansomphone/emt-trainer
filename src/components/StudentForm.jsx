@@ -29,7 +29,7 @@ export default function StudentForm({ onSubmit, submitLabel = 'Continue' }) {
         <Input type="email" placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Your email" />
         {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
       </div>
-      <p className="text-xs text-muted-foreground">Your name, email, scores, and transcript will be visible to your teacher.</p>
+      <p className="text-xs text-muted-foreground">Your name, email, scores, and transcript will be visible to your teacher and the site admin.</p>
       <div><Button type="submit">{submitLabel}</Button></div>
     </form>
   );

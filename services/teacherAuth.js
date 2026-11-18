@@ -137,6 +137,24 @@ function makeTeacherAuth({ googleVerifier = defaultGoogleVerifier } = {}) {
     next();
   }
 
+  // Google proves email ownership; password signup does not, so an allow-listed
+  // email only counts once the account is Google-verified.
+  function isAdmin(teacher) {
+    if (!teacher || !teacher.google_sub) return false;
+    const admins = String(process.env.ADMIN_EMAILS || '').split(',').map(repo.normalizeEmail).filter(Boolean);
+    return admins.includes(repo.normalizeEmail(teacher.email));
+  }
+
+  // 404 rather than 403 so non-admins can't tell the admin area exists.
+  function requireAdmin(req, res, next) {
+    const token = parseCookies(req.headers && req.headers.cookie)[COOKIE_NAME];
+    const teacher = getTeacherForToken(token);
+    if (!teacher) return res.status(401).json({ error: 'Please sign in again.' });
+    if (!isAdmin(teacher)) return res.status(404).json({ error: 'not found' });
+    req.teacher = teacher;
+    next();
+  }
+
   function setCookie(res, token) {
     res.cookie(COOKIE_NAME, token, { ...cookieOptions(), maxAge: SESSION_MS });
   }
@@ -153,6 +171,8 @@ function makeTeacherAuth({ googleVerifier = defaultGoogleVerifier } = {}) {
     getTeacherForToken,
     deleteSession,
     requireTeacher,
+    isAdmin,
+    requireAdmin,
     setCookie,
     clearCookie,
   };
