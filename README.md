@@ -1,4 +1,4 @@
-# EMT Scenario Trainer
+# ScenarioReady
 
 Faithful rebuild. See `CLAUDE.md` for product context and `docs/superpowers/specs/` for sub-project specs.
 

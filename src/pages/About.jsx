@@ -7,11 +7,11 @@ export default function About() {
     <div className="mt-6 grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>About this trainer</CardTitle>
+          <CardTitle>About ScenarioReady</CardTitle>
         </CardHeader>
         <CardContent className="text-sm space-y-3 text-muted-foreground">
           <p>
-            EMT Scenario Trainer is an AI-powered simulator for trauma and medical scenarios.
+            ScenarioReady is an AI-powered simulator for trauma and medical scenarios.
             You pick a scenario, talk to the patient and bystanders, perform physical assessments and interventions,
             and the moderator narrates findings drawn from a per-scenario findings map. Vitals shift in response to interventions.
             When you're done, an AI grader scores your run against an NREMT-style patient assessment rubric.

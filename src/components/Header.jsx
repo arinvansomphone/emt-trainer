@@ -41,7 +41,7 @@ export default function Header() {
       <header className="flex flex-wrap items-center justify-between py-4 gap-x-4 gap-y-2">
         <Link to="/" className="flex items-center gap-3">
           <StarOfLife className="h-5 w-5 text-primary" />
-          <span className="text-lg font-semibold tracking-tight">EMT Scenario Trainer</span>
+          <span className="text-lg font-semibold tracking-tight">ScenarioReady</span>
         </Link>
         <nav className="flex flex-wrap items-center gap-3">
           <NavItem to="/">Scenarios</NavItem>

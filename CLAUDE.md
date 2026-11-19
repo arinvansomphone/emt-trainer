@@ -1,4 +1,4 @@
-# EMT Scenario Trainer — Rebuild
+# ScenarioReady (EMT Scenario Trainer rebuild)
 
 A faithful rebuild of [arinvansomphone/emt-scenario-trainer](https://github.com/arinvansomphone/emt-scenario-trainer): an AI-powered EMT training platform that generates dynamic trauma and medical scenarios, simulates the patient + bystanders + moderator, tracks vitals across interventions, and grades the EMT's run against a rubric.
 
