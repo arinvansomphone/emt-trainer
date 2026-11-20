@@ -9,7 +9,7 @@ const SYSTEM_PROMPT = `You generate realistic EMT training scenarios as STRICT J
   "subtype": "string",
   "dispatch": "1-2 sentence radio-style dispatch",
   "patientProfile": { "name": "string", "age": number, "sex": "male|female", "chiefComplaint": "string",
-    "vitals": { "hr": number, "bp": "sys/dia", "rr": number, "spo2": number, "gcs": number } },
+    "vitals": { "hr": number, "bp": "sys/dia", "rr": number, "spo2": number, "gcs": number, "bgl": number } },
   "environment": { "location": "string", "weather": "string", "lighting": "string", "hazards": ["string"] },
   "bystanders": [
     { "name": "string", "role": "witness|family|coworker|first responder|none", "knowledge": "what they witnessed or know about the patient" }
@@ -25,11 +25,11 @@ const SYSTEM_PROMPT = `You generate realistic EMT training scenarios as STRICT J
     "back": "string",
     "extremities": "deformity, pulse, motor, sensory; specify left/right when relevant",
     "skin": "color, temperature, moisture, burns/lacerations with location and severity",
-    "neuro": "pupils (size, reactivity), GCS, FAST findings if relevant"
+    "neuro": "pupils (size, reactivity), GCS, stroke-scale findings if relevant (gaze deviation, facial droop, arm drift, speech, time last known well)"
   },
   "expectedAssessment": "trauma|medical"
 }
-Include 0-2 bystanders only when realistic (witnesses for trauma, family for medical, etc.). Findings must be CONSISTENT with the chief complaint and vitals. For burns, specify location (e.g., "right arm") and degree. For trauma, name affected sides explicitly. Return ONLY the JSON object. No prose.`;
+Include 0-2 bystanders only when realistic (witnesses for trauma, family for medical, etc.). Findings must be CONSISTENT with the chief complaint and vitals. "bgl" is blood glucose in mg/dL (normal 70-140; low for hypoglycemia, high for DKA/hyperglycemia). For burns, specify location (e.g., "right arm") and degree. For trauma, name affected sides explicitly. Return ONLY the JSON object. No prose.`;
 
 function makeScenarioGenerator({ openai, model = DEFAULT_MODEL, tokenMeter = null }) {
   async function generate(type, subtype) {
