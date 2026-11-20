@@ -16,7 +16,7 @@ A faithful rebuild of [arinvansomphone/emt-scenario-trainer](https://github.com/
 cp .env.example .env       # add OPENAI_API_KEY
 npm install
 npm run dev:all            # backend :3001, frontend :5173
-npm test                   # 169 tests
+npm test                   # 170 tests
 ```
 
 Note: backend listens on `:3001` (not 3000) to avoid clashing with another local Next.js dev server.

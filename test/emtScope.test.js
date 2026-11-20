@@ -98,6 +98,14 @@ exports.tests = [
     },
   },
   {
+    name: 'scenario system prompt acknowledges transport decisions without starting a handover',
+    fn: async () => {
+      const prompt = await seededSystemPrompt();
+      assert.ok(prompt.includes('TRANSPORT DECISIONS'));
+      assert.ok(prompt.includes('is NOT a handover'));
+    },
+  },
+  {
     name: 'scenario generator schema includes a blood glucose value',
     fn: async () => {
       const src = require('fs').readFileSync(require.resolve('../services/scenarioGenerator'), 'utf8');
